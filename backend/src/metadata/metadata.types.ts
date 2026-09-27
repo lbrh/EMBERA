@@ -60,7 +60,12 @@ export interface FireWeather {
     windKmh: number;
     windFromDeg: number; // meteorological: the direction the wind blows FROM
     ffdi: number; // McArthur Forest Fire Danger Index, see pipeline/fire-weather.ts
+    // The next hours' forecast (+1 h, +2 h), for the spread envelope to follow a wind change.
+    // Absent on rows stored before it existed.
+    nextHours?: FireWeatherHour[];
 }
+
+export type FireWeatherHour = Omit<FireWeather, 'observedAt' | 'nextHours'> & { time: string };
 
 // Read shape for the incident queries: an image plus its incident's dispatch state
 // (null = no coordinator dispatch decision yet).

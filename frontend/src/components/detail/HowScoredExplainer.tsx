@@ -24,13 +24,14 @@ export function HowScoredExplainer({ incident }: { incident: Incident }) {
 
       {weather ? (
         <p style={{ margin: 0, font: "400 var(--text-sm)/var(--lh-body) var(--font-plex-sans)", color: "var(--fg-2)" }}>
-          Fire danger <strong>{dangerRating(weather.ffdi)}</strong> (FFDI {weather.ffdi}): {Math.round(weather.temperatureC)}°C,{" "}
+          McArthur FFDI <strong>{weather.ffdi}</strong> ({dangerRating(weather.ffdi)} on the legacy pre-2022 scale, not an AFDRS
+          rating): {Math.round(weather.temperatureC)}°C,{" "}
           {Math.round(weather.humidityPct)}% humidity, wind {Math.round(weather.windKmh)} km/h from {compass(weather.windFromDeg)}.{" "}
           {raised
-            ? "At Severe or above the fire can outrun direct attack, so the image's score was raised one level."
+            ? "At FFDI 50 (legacy Severe) or above a fire can outrun direct attack, so the image's score was raised one level."
             : severe
-              ? "Severe or above adds a level to the image's score, up to 4; not applied here."
-              : "Below Severe, so the score is the image's alone."}
+              ? "FFDI 50 or above adds a level to the image's score, up to 4; not applied here."
+              : "Below FFDI 50, so the score is the image's alone."}
         </p>
       ) : null}
 

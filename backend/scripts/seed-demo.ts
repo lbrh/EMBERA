@@ -51,14 +51,21 @@ interface Scenario {
     confirm?: string; // coordinator confirmed the AI's tag from manual review
     discard?: string; // coordinator discarded it as not a fire (-> Archive)
     dispatch?: [DispatchState, string][];
-    weather?: Conditions; // defaults to DEMO_DAY
+    weather?: Conditions[]; // now, +1 h, +2 h; defaults to DEMO_DAY
 }
 
 // Fixed instead of looked up (src/pipeline/fire-weather.ts), so runs match: a Very high
-// north-westerly day, hotter and drier out west where fire danger reaches Severe and above.
+// north-westerly day with a south-westerly change coming through, which bends the spread
+// envelopes east; hotter, drier and steady out west, where fire danger reaches Extreme.
 type Conditions = { temperatureC: number; humidityPct: number; windKmh: number; windFromDeg: number };
-const DEMO_DAY: Conditions = { temperatureC: 30, humidityPct: 20, windKmh: 35, windFromDeg: 315 };
-const HOT_WEST: Conditions = { temperatureC: 36, humidityPct: 10, windKmh: 45, windFromDeg: 300 };
+const DEMO_DAY: Conditions[] = [
+    { temperatureC: 30, humidityPct: 20, windKmh: 35, windFromDeg: 315 },
+    { temperatureC: 28, humidityPct: 25, windKmh: 40, windFromDeg: 270 },
+    { temperatureC: 22, humidityPct: 40, windKmh: 30, windFromDeg: 225 },
+];
+const HOT_WEST: Conditions[] = Array(3).fill({ temperatureC: 36, humidityPct: 10, windKmh: 45, windFromDeg: 300 });
+const withFfdi = (c: Conditions) => ({ ...c, ffdi: forestFireDangerIndex(c.temperatureC, c.humidityPct, c.windKmh) });
+const plusHours = (iso: string, hours: number) => new Date(new Date(iso).getTime() + hours * 3_600_000).toISOString();
 
 const r = (
     smokeDensity: IndicatorReadings['smokeDensity'],
@@ -209,8 +216,12 @@ function build() {
             const timestamp = iso(shot.at);
             const bytes = readFileSync(join(IMAGES_DIR, shot.file));
             const c = shot.confidence; // flame visibility is the weakest reading, the others a little higher
-            const w = s.weather ?? DEMO_DAY;
-            const weather: FireWeather = { observedAt: timestamp, ...w, ffdi: forestFireDangerIndex(w.temperatureC, w.humidityPct, w.windKmh) };
+            const [now, ...next] = s.weather ?? DEMO_DAY;
+            const weather: FireWeather = {
+                observedAt: timestamp,
+                ...withFfdi(now),
+                nextHours: next.map((c, h) => ({ time: plusHours(timestamp, h + 1), ...withFfdi(c) })),
+            };
             const assessed = assessSeverity({
                 weather,
                 classificationLabel: 'fire', // same as the live pipeline: no fire/non-fire model yet

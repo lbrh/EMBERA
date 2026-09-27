@@ -97,7 +97,11 @@ export interface FireWeather {
   windKmh: number;
   windFromDeg: number; // the direction the wind blows FROM
   ffdi: number; // McArthur Forest Fire Danger Index
+  /** Forecast for the next hours (+1 h, +2 h); absent on rows stored before it existed. */
+  nextHours?: FireWeatherHour[];
 }
+
+export type FireWeatherHour = Omit<FireWeather, "observedAt" | "nextHours"> & { time: string };
 
 /** archived = an extinguished fire the coordinator has filed away (Resolved -> Archive). */
 export type BackendDispatchState = "awaiting" | "live" | "extinguished" | "archived";

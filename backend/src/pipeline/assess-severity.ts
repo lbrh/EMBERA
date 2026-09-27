@@ -180,7 +180,7 @@ export function applyFireDanger(imageScore: 1 | 2 | 3 | 4, weather: FireWeather 
 function describeFireDanger(imageScore: number, severityScore: number, weather: FireWeather | null | undefined): string {
     if (!weather || weather.ffdi < SEVERE_FFDI) return '';
     const raised = severityScore > imageScore ? `, so raised from ${imageScore} to ${severityScore}` : '';
-    return ` Fire danger ${dangerRating(weather.ffdi)} (FFDI ${weather.ffdi}, wind ${Math.round(weather.windKmh)} km/h)${raised}.`;
+    return ` McArthur FFDI ${weather.ffdi} (legacy ${dangerRating(weather.ffdi)}, wind ${Math.round(weather.windKmh)} km/h)${raised}.`;
 }
 
 export type SeverityAssessmentResult = Pick<

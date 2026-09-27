@@ -58,7 +58,7 @@ test('severe fire danger raises severity one level, lower danger leaves it alone
 
     const raised = assessSeverity({ ...moderateFire, weather: weather(58) });
     assert.equal(raised.severityScore, 3);
-    assert.match(raised.severityExplanation!, /Fire danger Severe \(FFDI 58, wind 45 km\/h\), so raised from 2 to 3/);
+    assert.match(raised.severityExplanation!, /McArthur FFDI 58 \(legacy Severe, wind 45 km\/h\), so raised from 2 to 3/);
 });
 
 test('fire danger never pushes severity past 4', () => {

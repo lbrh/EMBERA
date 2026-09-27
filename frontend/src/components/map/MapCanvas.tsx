@@ -8,7 +8,7 @@ import { filteredIncidents, legendCounts, mapMarkers } from "@/lib/store/selecto
 import { SEVERITY } from "@/lib/constants/severity";
 import { STAGING_COORDS, distanceKm } from "@/lib/utils/geo";
 import { clusterByProximity } from "@/lib/utils/project";
-import { compass, dangerRating, spreadEllipse } from "@/lib/utils/spread";
+import { compass, dangerRating, spreadHours, spreadPerimeters } from "@/lib/utils/spread";
 import { SeverityLegend } from "@/components/map/SeverityLegend";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { dataSource } from "@/lib/data-source";
@@ -131,14 +131,17 @@ function reviewIcon(incident: Incident): L.DivIcon {
   });
 }
 
-const SPREAD_HOURS = [3, 2, 1]; // outermost first, so the inner rings sit on top
-
 function spreadTooltip(incident: Incident): string {
   const w = incident.weather!;
+  // one entry per hour, collapsed while the wind holds: "NW 35 → SW 30 km/h"
+  const winds = spreadHours(w)
+    .map((h) => `${compass(h.windFromDeg)} ${Math.round(h.windKmh)}`)
+    .filter((wind, i, all) => wind !== all[i - 1]);
   return (
     `<strong>Indicative spread if unchecked</strong> · 1, 2 and 3 h<br>` +
-    `Fire danger ${dangerRating(w.ffdi)} (FFDI ${w.ffdi}) · wind ${Math.round(w.windKmh)} km/h from ${compass(w.windFromDeg)}<br>` +
-    `Rough estimate from weather and fuel, not a forecast`
+    `FFDI ${w.ffdi} (legacy ${dangerRating(w.ffdi)}) · wind ${winds.join(" → ")} km/h` +
+    `${winds.length > 1 ? " (forecast change)" : ""}<br>` +
+    `Rough estimate, not a forecast: no ember spotting or slope`
   );
 }
 
@@ -346,20 +349,20 @@ export function MapCanvas() {
     return hideCard;
   }, [leafletZoom, incidents, order, mapFilter, newIncidentId, router, setMapHoverId]);
 
-  // Spread envelopes for open fires with weather: where each could reach in 1-3 h, downwind.
+  // Spread envelopes for open fires with weather: where each could reach in 1-3 h, following the wind.
   useEffect(() => {
     const layer = spreadLayerRef.current;
     if (!layer) return;
     layer.clearLayers();
     for (const incident of filteredIncidents(incidents, order, mapFilter)) {
       if (incident.dispatch === "extinguished" || !incident.weather) continue;
-      for (const hours of SPREAD_HOURS) {
-        const outline = spreadEllipse(incident.coords, incident.weather, incident.elements.vegetation, hours);
-        if (!outline) break;
-        L.polygon(outline, { className: `fori-spread fori-spread--${incident.band}`, fillOpacity: 0.12 + 0.08 * (3 - hours) })
+      const rings = spreadPerimeters(incident.coords, incident.weather, incident.elements.vegetation);
+      // outermost first, so the inner (more certain) rings sit on top
+      rings?.reverse().forEach((ring, i) => {
+        L.polygon(ring, { className: `fori-spread fori-spread--${incident.band}`, fillOpacity: 0.12 + 0.08 * i })
           .bindTooltip(spreadTooltip(incident), { direction: "top", sticky: true, className: "fori-tooltip" })
           .addTo(layer);
-      }
+      });
     }
   }, [incidents, order, mapFilter]);
 
