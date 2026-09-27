@@ -1,12 +1,18 @@
 import { ARCHIVED_REASON, normalizeIncident } from "@/lib/normalize";
 import { OPERATING_REGION } from "@/lib/utils/geo";
 import { bandFromSum } from "@/lib/constants/severity";
+import { incidentRef } from "@/lib/utils/ref";
 import type {
   ApiIncidentRecord,
+  AssignmentStatus,
   BackendDispatchState,
   ClassificationLabel,
+  Crew,
+  CrewType,
   DecisionLogEntry,
+  SupportRequest,
   Incident,
+  IncidentComment,
   SeverityBand,
 } from "@/lib/types";
 import type { SubmitImagePayload } from "../mock/mockApi";
@@ -34,14 +40,10 @@ export async function listIncidents(): Promise<Incident[]> {
   return records.map((r) => normalizeIncident(r));
 }
 
-export async function getIncident(id: string): Promise<Incident | null> {
-  try {
-    // every image at the incident, most recent first — the newest one represents the incident
-    const images = await request<ApiIncidentRecord[]>(`/incidents/${encodeURIComponent(id)}`);
-    return images[0] ? normalizeIncident(images[0]) : null;
-  } catch {
-    return null;
-  }
+/** Every image at the incident, newest first, each normalised with its own rating. */
+export async function getIncidentImages(id: string): Promise<Incident[]> {
+  const images = await request<ApiIncidentRecord[]>(`/incidents/${encodeURIComponent(id)}`);
+  return images.map((r) => normalizeIncident(r));
 }
 
 /** Downscaled WebP of the stored image, cached by the browser. Safe to use as an <img> src. */
@@ -66,6 +68,7 @@ export async function submitImage(
   if (payload.latitude != null) form.append("latitude", String(payload.latitude));
   if (payload.longitude != null) form.append("longitude", String(payload.longitude));
   if (payload.timestamp) form.append("timestamp", payload.timestamp);
+  if (payload.incidentId) form.append("incident_id", payload.incidentId);
   const record = await request<ApiIncidentRecord>("/ingest", { method: "POST", body: form });
   return { ref: record.imageId, record };
 }
@@ -77,6 +80,16 @@ function notImplemented(name: string): never {
 // ponytail: sent as `by` on every decision; there's no login yet, so the backend records it unverified.
 export const COORDINATOR_NAME = "EC · Emergency Coordinator";
 
+// Who this browser is acting as: the coordinator, or the crew picked on the Crew tab. Stands in for
+// each person's own login (out of scope), so every action is recorded against the right name.
+let actor = COORDINATOR_NAME;
+export function setActor(name: string) {
+  actor = name;
+}
+export function currentActor() {
+  return actor;
+}
+
 type ReviewPatch = {
   severityScoreOverride?: number | null;
   classificationLabelOverride?: ClassificationLabel | null;
@@ -86,7 +99,7 @@ type ReviewPatch = {
 const jsonInit = (method: string, body: object): RequestInit => ({
   method,
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ ...body, by: COORDINATOR_NAME }),
+  body: JSON.stringify({ ...body, by: actor }),
 });
 
 // The review fields of an incident as the server now has them — merged into the store by the caller.
@@ -151,7 +164,11 @@ export async function restoreFromArchive(incident: Incident): Promise<Partial<In
   return decide(incident, { classificationLabelOverride: "uncertain", assessmentStatus: "unable_to_assess" });
 }
 
-export const dispatchCrew = (incident: Incident) => setDispatch(incident, "live");
+/** Sends crews to the incident; the backend makes it live in the same step. */
+export async function dispatchCrews(incident: Incident, crewIds: string[]): Promise<Partial<Incident>> {
+  await request(`/incidents/${encodeURIComponent(incident.id)}/assignments`, jsonInit("POST", { crewIds }));
+  return { dispatch: "live", flag: "processed", backend: { ...incident.backend, dispatchState: "live" } };
+}
 export const cancelDispatch = (incident: Incident) => setDispatch(incident, "awaiting");
 export const markExtinguished = (incident: Incident) => setDispatch(incident, "extinguished");
 export const reopenIncident = (incident: Incident) => setDispatch(incident, "live");
@@ -195,20 +212,143 @@ interface ApiDecision {
 
 const FIELD_LABELS: Record<string, string> = {
   severityScoreOverride: "Severity",
+  severityScore: "AI severity (fire weather)",
   classificationLabelOverride: "Classification",
   assessmentStatus: "Review status",
   dispatchState: "Dispatch",
 };
+
+const STEP_LABELS: Record<string, string> = { dispatched: "dispatched", en_route: "en route", on_scene: "on scene", cleared: "cleared" };
+
+function decisionSummary(d: ApiDecision): string {
+  // crew steps are logged as field "crew:<label>", e.g. "Kinglake Heavy 1: en route → on scene"
+  if (d.field.startsWith("crew:")) {
+    const step = (s: string | null) => (s ? (STEP_LABELS[s] ?? s) : null);
+    return d.fromValue ? `${d.field.slice(5)}: ${step(d.fromValue)} → ${step(d.toValue)}` : `${d.field.slice(5)} ${step(d.toValue)}`;
+  }
+  if (d.field === "mergedFrom") return `Merged in ${incidentRef(d.toValue ?? "")}: its images, crews, comments and history now live here`;
+  if (d.field === "splitTo") return `An image was split off into ${incidentRef(d.toValue ?? "")}`;
+  if (d.field === "splitFrom") return `Split off from ${incidentRef(d.toValue ?? "")}`;
+  if (d.field === "supportRequest") {
+    return d.fromValue ? `Support request ${d.toValue}` : `Support requested: ${d.toValue === "any crew" ? "any crew" : `${d.toValue} crew`}`;
+  }
+  return `${FIELD_LABELS[d.field] ?? d.field}: ${d.fromValue ?? "none"} → ${d.toValue ?? "none"}`;
+}
 
 export async function getDecisionLog(incidentId: string): Promise<DecisionLogEntry[]> {
   const decisions = await request<ApiDecision[]>(`/incidents/${encodeURIComponent(incidentId)}/decisions`);
   return decisions.map((d) => ({
     id: String(d.id),
     incidentId: d.incidentId,
-    summary: `${FIELD_LABELS[d.field] ?? d.field}: ${d.fromValue ?? "none"} → ${d.toValue ?? "none"}`,
+    summary: decisionSummary(d),
     who: d.decidedBy,
     whenIso: d.decidedAt,
   }));
+}
+
+interface ApiComment {
+  id: number;
+  incidentId: string;
+  author: string;
+  body: string;
+  createdAt: string;
+}
+
+const toComment = (c: ApiComment): IncidentComment => ({
+  id: String(c.id),
+  incidentId: c.incidentId,
+  body: c.body,
+  who: c.author,
+  whenIso: c.createdAt,
+});
+
+/** Comments on an incident, newest first. */
+export async function getComments(incidentId: string): Promise<IncidentComment[]> {
+  const comments = await request<ApiComment[]>(`/incidents/${encodeURIComponent(incidentId)}/comments`);
+  return comments.map(toComment);
+}
+
+export async function addComment(incidentId: string, body: string): Promise<IncidentComment> {
+  const comment = await request<ApiComment>(`/incidents/${encodeURIComponent(incidentId)}/comments`, jsonInit("POST", { body }));
+  return toComment(comment);
+}
+
+interface ApiCrew {
+  crewId: string;
+  label: string;
+  crewType: CrewType;
+  station: { name: string; latitude: number; longitude: number };
+  assignment: { assignmentId: number; incidentId: string; status: AssignmentStatus; updatedAt: string } | null;
+}
+
+export async function getCrews(): Promise<Crew[]> {
+  const crews = await request<ApiCrew[]>("/crews");
+  return crews.map((c) => ({
+    id: c.crewId,
+    label: c.label,
+    type: c.crewType,
+    station: { name: c.station.name, coords: { lat: c.station.latitude, lng: c.station.longitude } },
+    assignment: c.assignment && {
+      id: String(c.assignment.assignmentId),
+      incidentId: c.assignment.incidentId,
+      status: c.assignment.status,
+      updatedAtIso: c.assignment.updatedAt,
+    },
+  }));
+}
+
+/** A crew moves itself along: en route, then on scene. */
+export async function setCrewStatus(assignmentId: string, status: "en_route" | "on_scene"): Promise<void> {
+  await request(`/assignments/${encodeURIComponent(assignmentId)}`, jsonInit("PATCH", { status }));
+}
+
+/** A crew on scene reports no fire: the image is marked not a fire and the incident archived,
+ * which frees every crew on it. */
+export async function falseAlarm(incident: Incident): Promise<Partial<Incident>> {
+  const review = await decide(incident, { classificationLabelOverride: "non_fire", assessmentStatus: "assessed" });
+  // carry the new label into `backend`, or Undo would think only the dispatch state changed
+  const dispatch = await setDispatch({ ...incident, backend: review.backend ?? incident.backend }, "archived");
+  return { ...review, ...dispatch };
+}
+
+interface ApiSupportRequest {
+  id: number;
+  incidentId: string;
+  crewId: string;
+  crewLabel: string;
+  crewType: CrewType | null;
+  note: string | null;
+  createdAt: string;
+}
+
+/** Open support requests, newest first. */
+export async function getSupportRequests(): Promise<SupportRequest[]> {
+  const requests = await request<ApiSupportRequest[]>("/support-requests");
+  return requests.map(({ id, createdAt, ...rest }) => ({ ...rest, id: String(id), createdAtIso: createdAt }));
+}
+
+export async function requestSupport(incidentId: string, crewId: string, crewType: CrewType | null, note: string): Promise<void> {
+  await request(`/incidents/${encodeURIComponent(incidentId)}/support-requests`, jsonInit("POST", { crewId, crewType, note }));
+}
+
+export async function dismissSupportRequest(id: string): Promise<void> {
+  await request(`/support-requests/${encodeURIComponent(id)}`, jsonInit("PATCH", { status: "dismissed" }));
+}
+
+/** Recalls a crew (clears its assignment). The backend puts the incident back in the order if it was the last crew. */
+export async function recallCrew(assignmentId: string): Promise<void> {
+  await request(`/assignments/${encodeURIComponent(assignmentId)}`, jsonInit("PATCH", { status: "cleared" }));
+}
+
+/** Folds `sourceId` into `targetId`: images, crews, comments and history move; the source is gone. */
+export async function mergeIncidents(sourceId: string, targetId: string): Promise<void> {
+  await request(`/incidents/${encodeURIComponent(sourceId)}/merge`, jsonInit("POST", { intoIncidentId: targetId }));
+}
+
+/** Moves one image into a new incident of its own; returns the new incident's id. */
+export async function splitImage(imageId: string): Promise<string> {
+  const { incidentId } = await request<{ incidentId: string }>(`/images/${encodeURIComponent(imageId)}/split`, jsonInit("POST", {}));
+  return incidentId;
 }
 
 export async function setGrouping(

@@ -10,11 +10,13 @@ import { relativeTime } from "@/lib/utils/time";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { useRelocatedPulse } from "@/lib/hooks/useRelocatedPulse";
+import { AssignedCrews } from "@/components/dispatch/AssignedCrews";
 
 export function DispatchRow({ incident, rank }: { incident: Incident; rank: number | null }) {
   const router = useRouter();
   const tick = useIncidentStore((s) => s.clockTick);
   const dispatchCrew = useIncidentStore((s) => s.dispatchCrew);
+  const openCrewPicker = useIncidentStore((s) => s.openCrewPicker);
   const isLive = incident.dispatch === "live";
   const isNext = rank === 1;
   const { ref, pulsing } = useRelocatedPulse<HTMLDivElement>(incident.id);
@@ -82,6 +84,11 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         {isLive
           ? "Crew assigned. Stays live until the crew reports the fire out."
           : incident.recommendedAction ?? "Ranked by severity."}
+        {isLive ? (
+          <AssignedCrews incidentId={incident.id} />
+        ) : (
+          incident.recommendedAction ?? "Ranked by severity, then distance from staging."
+        )}
       </span>
       <div className="dr-metrics">
         <span
@@ -95,12 +102,15 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         </span>
       </div>
       <div className="dr-action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} style={{ justifySelf: "end" }}>
+        {/* only crews close a fire (Crew tab); the coordinator can send more help */}
         {isLive ? (
           <Button variant="secondary" small onClick={() => router.push(`/incident/${incident.id}`)}>
             Open
+          <Button variant="secondary" small onClick={() => openCrewPicker(incident.id)}>
+            Add crew
           </Button>
         ) : (
-          <Button variant={isNext ? "primary" : "secondary"} small ack onClick={() => dispatchCrew(incident.id)}>
+          <Button variant={isNext ? "primary" : "secondary"} small onClick={() => openCrewPicker(incident.id)}>
             Dispatch crew
           </Button>
         )}

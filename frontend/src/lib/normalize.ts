@@ -140,7 +140,13 @@ export function normalizeIncident(
     groupId: null,
 
     reviewReason:
-      flag !== "flagged_review" ? null : record.classificationLabelOverride === "uncertain" ? "restored_not_fire" : "below_threshold",
+      flag !== "flagged_review"
+        ? null
+        : record.classificationLabelOverride === "uncertain"
+          ? "restored_not_fire"
+          : record.classificationLabel === "uncertain" && elements.smoke === 1 && elements.flame === 1
+            ? "no_fire_detected"
+            : "below_threshold",
     reviewReasonNote: null,
 
     dismissedReason: archived
@@ -152,6 +158,7 @@ export function normalizeIncident(
     extinguishedNote: dispatch === "extinguished" && dispatchBy ? "Crew reported the fire out" : null,
     extinguishedBy: dispatch === "extinguished" ? dispatchBy : null,
     extinguishedAtIso: dispatch === "extinguished" ? dispatchAt : null,
+    weather: record.weather ?? null,
 
     backend: {
       imageId: record.imageId,

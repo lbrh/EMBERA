@@ -6,9 +6,9 @@ import type { NextRequest } from "next/server";
  * forwarded — POST /images/:id/assess (the classifier's write hook) is deliberately not exposed.
  */
 const ALLOWED: Record<string, RegExp> = {
-  GET: /^(incidents|incidents\/[^/]+|incidents\/[^/]+\/decisions|order|images\/[^/]+|images\/[^/]+\/preview)$/,
-  POST: /^ingest$/,
-  PATCH: /^images\/[^/]+\/decision$/,
+  GET: /^(incidents|incidents\/[^/]+|incidents\/[^/]+\/(decisions|comments)|order|crews|support-requests|images\/[^/]+|images\/[^/]+\/preview)$/,
+  POST: /^(ingest|incidents\/[^/]+\/(comments|assignments|support-requests|merge)|images\/[^/]+\/split)$/,
+  PATCH: /^(images\/[^/]+\/decision|(assignments|support-requests)\/[^/]+)$/,
   PUT: /^incidents\/[^/]+\/dispatch$/,
 };
 

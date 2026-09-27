@@ -6,6 +6,7 @@ import { useIncidentStore, type MapFilter } from "@/lib/store/useIncidentStore";
 import { filteredIncidents, reviewQueue } from "@/lib/store/selectors";
 import { RankedIncidentRow } from "@/components/map/RankedIncidentRow";
 import { GroupingProposalCard } from "@/components/map/GroupingProposalCard";
+import { SupportRequestAlerts } from "@/components/dispatch/SupportRequestAlerts";
 import { Button } from "@/components/primitives/Button";
 import { CONFIDENCE_THRESHOLD } from "@/lib/constants/severity";
 
@@ -25,10 +26,11 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
   const alertsPanelOpen = useIncidentStore((s) => s.alertsPanelOpen);
   const setAlertsPanelOpen = useIncidentStore((s) => s.setAlertsPanelOpen);
   const group = useIncidentStore((s) => s.group);
+  const supportCount = useIncidentStore((s) => s.supportRequests.length);
 
   const ranked = filteredIncidents(incidents, order, mapFilter);
   const flaggedCount = reviewQueue(incidents, order).length;
-  const suggestionCount = group && group.state === "suggested" ? 1 : 0;
+  const suggestionCount = (group && group.state === "suggested" ? 1 : 0) + supportCount;
 
   return (
     <aside
@@ -90,6 +92,7 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
       <div style={{ flex: 1, overflow: "auto", borderTop: "1px solid var(--border)" }}>
         {alertsPanelOpen ? (
           <div style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+            <SupportRequestAlerts />
             <GroupingProposalCard />
             {flaggedCount > 0 ? (
               <div className="card card--pending" style={{ padding: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -108,7 +111,7 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
                 </Button>
               </div>
             ) : null}
-            {!group && flaggedCount === 0 ? (
+            {!group && flaggedCount === 0 && supportCount === 0 ? (
               <p className="caption">No alerts or suggestions right now.</p>
             ) : null}
           </div>

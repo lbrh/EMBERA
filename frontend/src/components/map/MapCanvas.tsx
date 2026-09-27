@@ -8,6 +8,7 @@ import { filteredIncidents, legendCounts, mapMarkers } from "@/lib/store/selecto
 import { SEVERITY } from "@/lib/constants/severity";
 import { STAGING_COORDS, distanceKm } from "@/lib/utils/geo";
 import { clusterByProximity } from "@/lib/utils/project";
+import { compass, dangerRating, spreadHours, spreadPerimeters, weatherSource } from "@/lib/utils/spread";
 import { SeverityLegend } from "@/components/map/SeverityLegend";
 import { MapScale } from "@/components/map/MapScale";
 import { MapLayerControl } from "@/components/map/MapLayerControl";
@@ -148,6 +149,36 @@ function hoverCard(incident: Incident): HTMLElement {
   return card;
 }
 
+/** The one image under review a reviewer asked to see ("Locate on map"): a dashed pending ring,
+ * never a severity colour, since it has no applied severity yet. */
+function reviewIcon(incident: Incident): L.DivIcon {
+  return L.divIcon({
+    className: "fori-marker is-new",
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    html:
+      `<div class="fori-pin">` +
+      `<div class="fori-review">?</div>` +
+      `<span class="fori-label">Under review · ${escapeHtml(incident.place)}</span>` +
+      `</div>`,
+  });
+}
+
+function spreadTooltip(incident: Incident): string {
+  const w = incident.weather!;
+  // one entry per hour, collapsed while the wind holds: "NW 35 → SW 30 km/h"
+  const winds = spreadHours(w)
+    .map((h) => `${compass(h.windFromDeg)} ${Math.round(h.windKmh)}`)
+    .filter((wind, i, all) => wind !== all[i - 1]);
+  return (
+    `<strong>Indicative spread if unchecked</strong> · 1, 2 and 3 h<br>` +
+    `FFDI ${w.ffdi} (legacy ${dangerRating(w.ffdi)}) · wind ${winds.join(" → ")} km/h` +
+    `${winds.length > 1 ? " (forecast change)" : ""}<br>` +
+    `Now: ${escapeHtml(weatherSource(w))}<br>` +
+    `Rough estimate, not a forecast: no ember spotting or slope`
+  );
+}
+
 const extinguishedIcon = () =>
   L.divIcon({
     className: "fori-marker fori-marker-out",
@@ -169,12 +200,20 @@ export function MapCanvas() {
   const locatedIncidentId = useIncidentStore((s) => s.locatedIncidentId);
   const setLocatedIncidentId = useIncidentStore((s) => s.setLocatedIncidentId);
   const group = useIncidentStore((s) => s.group);
+  const mapFocusId = useIncidentStore((s) => s.mapFocusId);
+  const clearMapFocus = useIncidentStore((s) => s.clearMapFocus);
+  const selectReview = useIncidentStore((s) => s.selectReview);
+  // shown as its own pin only while it's still under review; once decided it's an ordinary marker
+  const focus = mapFocusId ? incidents[mapFocusId] : undefined;
+  const focusUnderReview = focus?.flag === "flagged_review" ? focus : undefined;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
+  const spreadLayerRef = useRef<L.LayerGroup | null>(null);
   const overlayLayerRef = useRef<L.LayerGroup | null>(null);
+  const focusLayerRef = useRef<L.LayerGroup | null>(null);
   /** incident id -> the marker currently representing it (its own pin, or its cluster). */
   const markerByIdRef = useRef<Map<string, L.Marker>>(new Map());
   const [leafletZoom, setLeafletZoom] = useState<number | null>(null);
@@ -207,8 +246,11 @@ export function MapCanvas() {
       map.fitBounds(L.latLngBounds(coords), { padding: [56, 56], maxZoom: INITIAL_MAX_ZOOM });
     }
 
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: MAX_ZOOM }).addTo(map);
+    spreadLayerRef.current = L.layerGroup().addTo(map);
     overlayLayerRef.current = L.layerGroup().addTo(map);
     markerLayerRef.current = L.layerGroup().addTo(map);
+    focusLayerRef.current = L.layerGroup().addTo(map);
 
     const syncZoom = () => setLeafletZoom(map.getZoom());
     const syncView = () => {
@@ -234,7 +276,9 @@ export function MapCanvas() {
       map.remove();
       mapRef.current = null;
       markerLayerRef.current = null;
+      spreadLayerRef.current = null;
       overlayLayerRef.current = null;
+      focusLayerRef.current = null;
       markerByIdRef.current = new Map();
       useIncidentStore.getState().setMapHoverId(null);
     };
@@ -375,6 +419,23 @@ export function MapCanvas() {
     };
   }, [leafletZoom, incidents, order, mapFilter, newIncidentId, locatedIncidentId, setLocatedIncidentId, router, setMapHoverId]);
 
+  // Spread envelopes for open fires with weather: where each could reach in 1-3 h, following the wind.
+  useEffect(() => {
+    const layer = spreadLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const incident of filteredIncidents(incidents, order, mapFilter)) {
+      if (incident.dispatch === "extinguished" || !incident.weather) continue;
+      const rings = spreadPerimeters(incident.coords, incident.weather, incident.elements.vegetation);
+      // outermost first, so the inner (more certain) rings sit on top
+      rings?.reverse().forEach((ring, i) => {
+        L.polygon(ring, { className: `fori-spread fori-spread--${incident.band}`, fillOpacity: 0.12 + 0.08 * i })
+          .bindTooltip(spreadTooltip(incident), { direction: "top", sticky: true, className: "fori-tooltip" })
+          .addTo(layer);
+      });
+    }
+  }, [incidents, order, mapFilter]);
+
   // Pending grouping suggestion: a dashed ring around its members that opens the proposal card.
   useEffect(() => {
     const layer = overlayLayerRef.current;
@@ -405,6 +466,24 @@ export function MapCanvas() {
       .on("click", () => setAlertsPanelOpen(true))
       .addTo(layer);
   }, [group, incidents, order, setAlertsPanelOpen]);
+
+  // "Locate on map" from Manual review: that one image's pin, which opens it back in review.
+  useEffect(() => {
+    const layer = focusLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (!focusUnderReview) return;
+    const marker = L.marker([focusUnderReview.coords.lat, focusUnderReview.coords.lng], {
+      icon: reviewIcon(focusUnderReview),
+      zIndexOffset: 2000,
+    })
+      .on("click", () => {
+        selectReview(focusUnderReview.id);
+        router.push("/review");
+      })
+      .addTo(layer);
+    marker.getElement()?.setAttribute("aria-label", `${focusUnderReview.place}, under review. Open in manual review`);
+  }, [focusUnderReview, router, selectReview]);
 
   // Hover linkage with the Active Incidents rail.
   useEffect(() => {
@@ -475,6 +554,26 @@ export function MapCanvas() {
       <div style={{ position: "absolute", right: "var(--space-4)", bottom: "var(--space-5)", zIndex: 1 }}>
         <MapLayerControl active={baseLayer} onChange={setBaseLayer} />
       </div>
+      {focusUnderReview ? (
+        <div className="card map-focus-bar" role="status">
+          <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <strong>{focusUnderReview.ref}</strong> · under review<span className="map-focus-bar__more">, shown only for you</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn--link btn--sm"
+            onClick={() => {
+              selectReview(focusUnderReview.id);
+              router.push("/review");
+            }}
+          >
+            Back to review
+          </button>
+          <button type="button" className="icon-btn icon-btn--bare" aria-label="Hide this image from the map" onClick={clearMapFocus}>
+            ✕
+          </button>
+        </div>
+      ) : null}
 
       <SeverityLegend counts={counts} />
     </div>

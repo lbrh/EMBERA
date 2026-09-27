@@ -15,6 +15,7 @@ const TAB_ICONS: Record<TabHref, string> = {
   "/resolved": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
   "/archive": "M3 5h18v4H3zM5 9v10h14V9M10 13h4",
   "/submit": "M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
+  "/crews": "M4 17h2m12 0h2M3 13l2-6h9l3 4h3v6H3zM7.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 7v4",
 };
 
 export function Header() {
@@ -31,7 +32,8 @@ export function Header() {
   const pathname = usePathname();
   // Incident Detail is reached by click-through, not a tab: whichever tab the user came from
   // stays marked as current there.
-  const activeHref = pathname?.startsWith("/incident/") ? lastTabPath : pathname;
+  // The crew view (/crew) belongs to the Crews tab.
+  const activeHref = pathname?.startsWith("/incident/") ? lastTabPath : pathname === "/crew" ? "/crews" : pathname;
 
   const [now, setNow] = useState<string | null>(null);
   useEffect(() => {

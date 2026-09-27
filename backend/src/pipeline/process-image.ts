@@ -6,8 +6,9 @@ import { extractExif } from './exif.ts';
 import { validateIngestion, assertReadableImage } from './validate.ts';
 import { findIncidentToAttachTo } from './group-incident.ts';
 import { lookUpPlaceName } from './place-name.ts';
+import { lookUpFireWeather } from './fire-weather.ts';
 import { INDICATOR_MODELS, classifyIndicator, isIndicatorConfigured, type Indicator } from '../ai/indicator-models.ts';
-import { assessSeverity, type IndicatorReadings, type IndicatorConfidences } from './assess-severity.ts';
+import { assessSeverity, classifyFromIndicators, type IndicatorReadings, type IndicatorConfidences } from './assess-severity.ts';
 import { logger, errorMeta } from '../utils/logger.ts';
 import type { IngestionInput, ImageMetadata } from '../metadata/metadata.types.ts';
 
@@ -78,6 +79,7 @@ export async function processImage(input: IngestionInput, file: IngestedFile): P
             ingestionError: null,
             contentHash,
             placeName: null,
+            weather: null,
         });
     });
 
@@ -119,10 +121,12 @@ async function classifyAndUpdate(record: ImageMetadata, imageBuffer: Buffer): Pr
     if (!record.storagePath) return;
 
     // Per-indicator watsonx.ai deployments (indicator-models.ts). Each configured one writes
-    // its reading; once all four are in, the rubric score is computed and written too.
+    // its reading; once all four are in, the rubric score is computed and written too. The
+    // weather lookup runs alongside, since the score needs it (assess-severity.ts applyFireDanger).
     const indicators = Object.keys(INDICATOR_MODELS) as Indicator[];
     const readings: Partial<IndicatorReadings> = {};
     const confidences: Partial<IndicatorConfidences> = {};
+    const weatherLookup = lookUpFireWeather(record.latitude, record.longitude);
     await Promise.all(
         indicators.filter(isIndicatorConfigured).map(async (indicator) => {
             try {
@@ -134,19 +138,19 @@ async function classifyAndUpdate(record: ImageMetadata, imageBuffer: Buffer): Pr
             }
         }),
     );
+    const weather = await weatherLookup;
 
     try {
         if (indicators.every((indicator) => readings[indicator])) {
-            // ponytail: no fire/non-fire classifier is deployed, so every image is scored as 'fire';
-            // swap in a real classification_label once one exists.
             const result = assessSeverity({
-                classificationLabel: 'fire',
+                classificationLabel: classifyFromIndicators(readings as IndicatorReadings),
                 indicators: readings as IndicatorReadings,
                 confidences: confidences as IndicatorConfidences,
+                weather,
             });
-            await metadataRepository.update(record.imageId, result);
-        } else if (Object.keys(readings).length > 0) {
-            await metadataRepository.update(record.imageId, readings);
+            await metadataRepository.update(record.imageId, { ...result, weather });
+        } else {
+            await metadataRepository.update(record.imageId, { ...readings, weather });
         }
     } catch (err) {
         logger.error('failed to write indicator results', errorMeta(err));

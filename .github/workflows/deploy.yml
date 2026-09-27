@@ -30,7 +30,7 @@ jobs:
         run: |
           npm install
           npx tsc --noEmit
-          npx --yes -p pg psql "$DATABASE_URL" -f src/metadata/schema.sql
+          psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f src/metadata/schema.sql
           npm test
       - name: frontend checks
         working-directory: frontend

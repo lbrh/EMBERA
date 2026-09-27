@@ -11,7 +11,7 @@ const LOCATE_ZOOM = 14;
 
 export function DetailActionsBar({ incident }: { incident: Incident }) {
   const router = useRouter();
-  const dispatchCrew = useIncidentStore((s) => s.dispatchCrew);
+  const openCrewPicker = useIncidentStore((s) => s.openCrewPicker);
   const cancelDispatch = useIncidentStore((s) => s.cancelDispatch);
   const sendToManualReview = useIncidentStore((s) => s.sendToManualReview);
   const archiveIncident = useIncidentStore((s) => s.archiveIncident);
@@ -34,19 +34,21 @@ export function DetailActionsBar({ incident }: { incident: Incident }) {
   }
 
   // one slot walks the lifecycle: dispatch -> (live, no primary action) -> archive
+  // one slot walks the lifecycle: dispatch -> (the crew marks it extinguished) -> archive
   const primary = isLive
     ? null
     : isExtinguished
-      ? { label: "Archive", run: () => archiveIncident(incident.id) }
+      ? { label: "Archive", run: () => archiveIncident(incident.id), ack: true }
       : incident.dispatch === "archived"
         ? null
-        : { label: "Dispatch crew", run: () => dispatchCrew(incident.id), disabled: incident.band === 0 };
+        : // opens the crew picker, so no ✓: nothing has happened yet
+          { label: "Dispatch crew", run: () => openCrewPicker(incident.id), disabled: incident.band === 0, ack: false };
 
   return (
     <div className="detail-actions" style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
       {/* one slot for every label, so the button that was clicked shows its ✓ and then the next step */}
       {primary ? (
-        <Button variant="primary" ack disabled={primary.disabled} onClick={primary.run}>
+        <Button variant="primary" ack={primary.ack} disabled={"disabled" in primary ? primary.disabled : false} onClick={primary.run}>
           {primary.label}
         </Button>
       ) : null}

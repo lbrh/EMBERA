@@ -2,7 +2,7 @@
 
 **Status:** Live. Points at the current design and lists what has to change because of the 2026-09-24 rubric change.
 **Owner:** Benjamin (UX)
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 
 ---
 
@@ -31,7 +31,7 @@ The "How this severity was scored" block should show vegetation as "4 → 0 (no 
 ## 3. Build notes from the backend
 
 - **Scores arrive after the upload.** `/ingest` returns `pending_review` straight away. The submission screen's "processing" state should hand over to the map, which picks up the score by re-fetching `/incidents` for the viewport. Nothing waits on the upload call.
-- **Rate limit:** 30 requests/min is shared by every browser on the `frontend` key. Map polling every 10 s uses 6/min per open tab, so the limit needs raising before more than about 4 coordinators are online (see open questions).
+- **Rate limit:** 600 reads and 60 writes per minute, per browser (caller + client IP). Polling every 5 s uses 12 reads/min per open tab, so reads have plenty of headroom (D-29).
 - **Threshold wording:** requirements say a score **exactly 0.75 goes to review**, and the backend does that (≤ 0.75). The WK3 prototype treats 0.75 as confirmed ("strictly below is low"). Align the UI with the requirement.
 - **Confidence display:** show `confidence_score` (weakest indicator). The explanation names which indicator was weakest when an image is flagged.
 - **Classification label:** every image is `fire` until the gate model exists, so the Archive (Not a fire) screen will stay empty from AI results for now.

@@ -5,6 +5,7 @@ const SOURCE_META: Record<SourceType, { abbr: string; label: string }> = {
   satellite: { abbr: "Satellite", label: "Satellite feed" },
   citizen: { abbr: "Manual", label: "Manual upload" },
   cctv: { abbr: "API", label: "Bulk or API submission" },
+  crew: { abbr: "Crew", label: "Photo from a response crew" },
 };
 
 export function SourceChip({ source }: { source: SourceType }) {

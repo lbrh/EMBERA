@@ -79,6 +79,7 @@ export default function DispatchOrderPage() {
         {showLive ? (
           <section aria-label="Live">
             <SectionBar tone="ok" title="Live" count={live.length} note="Stays live until the crew reports the fire out." />
+            <SectionBar tone="ok" title="Live" count={live.length} note="Crews mark the fire extinguished (or a false alarm) from the Crew tab." />
             {live.length === 0 ? (
               <EmptyRow text="No crews out yet. Incidents move here when you dispatch a crew." />
             ) : (

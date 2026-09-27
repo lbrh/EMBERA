@@ -6,5 +6,5 @@ export const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 export const dataSource = useMock ? mockApi : realApi;
 export { getSeedDecisionLog, getSeedGroup } from "./mock/mockApi";
-export { COORDINATOR_NAME } from "./real/api";
+export { COORDINATOR_NAME, currentActor, setActor } from "./real/api";
 export type { SubmitImagePayload, GroupAction } from "./mock/mockApi";

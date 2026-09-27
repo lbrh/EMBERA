@@ -4,6 +4,15 @@ import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { reviewQueue } from "@/lib/store/selectors";
 import { HatchBanner } from "@/components/primitives/HatchBanner";
 import { ReviewQueueItem } from "@/components/review/ReviewQueueItem";
+import { CONFIDENCE_THRESHOLD } from "@/lib/constants/severity";
+
+const REASON_LABEL: Record<string, string> = {
+  below_threshold: `At or below ${CONFIDENCE_THRESHOLD}`,
+  sent_by_coordinator: "Sent by coordinator",
+  restored_not_fire: "Restored, was not a fire",
+  restored_discarded: "Restored, was discarded",
+  no_fire_detected: "No smoke or flame seen",
+};
 
 export function ReviewQueueRail() {
   const incidents = useIncidentStore((s) => s.incidents);

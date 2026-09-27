@@ -2,7 +2,7 @@
 
 **Status:** Live
 **Owner:** Liam Robinson Hounsell (Dev 2), Htet (Dev 1)
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 **Supersedes:** [Sprint 1 deployment doc](../archive/sprint-1/setup/DeploymentDocumentation.md) (which predates Code Engine hosting and said Vercel/Firebase)
 
 ---
@@ -24,7 +24,7 @@
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `ci.yml` | PR into `main` | Frontend lint/typecheck/build/test. Backend typecheck, **applies `schema.sql` to `DATABASE_URL`**, runs tests. |
+| `ci.yml` | PR into `main` | Frontend lint/typecheck/build/test. Backend typecheck, **applies `schema.sql` to `DATABASE_URL` (prod)**, runs tests. |
 | `deploy.yml` | Push to `prod`, or manual run | Same checks, then builds both images, pushes to ICR, `ibmcloud ce application update --image …` for each app |
 
 - `application update --image` only swaps the image. **Environment and secrets are not touched by a deploy.**
@@ -51,11 +51,12 @@ Before pushing a local `.env`, compare it with what prod has. On 2026-09-24 all 
 
 ## 4. Database changes: known hazard
 
-CI applies `schema.sql` to the shared database when a PR opens, so a schema change reaches prod before the code that needs it. Until CI has its own database:
+CI and prod share one database (`DATABASE_URL`, D-32). CI applies `schema.sql` to it when a PR opens, so a schema change reaches prod before the code that needs it, and CI's tests write (and then delete) test rows there.
 
-1. Make schema changes additive where possible: add columns, don't drop them.
+1. **Keep schema changes additive**: add tables and columns, widen checks. Don't drop or rename while the old code still uses them.
 2. If a drop or rename is unavoidable, merge and deploy immediately after the PR opens.
-3. Better: point CI's `DATABASE_URL` at a Neon branch.
+3. `psql` runs with `ON_ERROR_STOP=1`, so a failing statement fails the job instead of carrying on.
+4. A separate staging database was tried (D-30) and dropped (D-32). The switch back is the `DATABASE_URL` secret in `ci.yml`.
 
 ## 5. Live checks
 

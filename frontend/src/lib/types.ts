@@ -13,7 +13,8 @@
  */
 
 // Mirrors backend/src/metadata/metadata.types.ts (the JSON the API actually returns). Keep the two in sync.
-export type SourceType = "drone" | "cctv" | "citizen" | "satellite";
+/** crew = a photo a response crew uploads from the fire (Crew tab). */
+export type SourceType = "drone" | "cctv" | "citizen" | "satellite" | "crew";
 
 export type AssessmentStatus = "assessed" | "unable_to_assess" | "pending_review";
 
@@ -84,7 +85,26 @@ export interface ApiIncidentRecord {
   /** Who set the current dispatch state, and when (incident reads only). */
   dispatchUpdatedBy?: string | null;
   dispatchUpdatedAt?: string | null;
+  /** Weather and fire danger at the coordinates, looked up after ingest; null until then. */
+  weather?: FireWeather | null;
 }
+
+/** Mirrors backend FireWeather (backend/src/metadata/metadata.types.ts). */
+export interface FireWeather {
+  observedAt: string;
+  fetchedAt?: string; // when the backend looked it up; refreshed every ~30 min while the incident is open
+  temperatureC: number;
+  humidityPct: number;
+  windKmh: number;
+  windFromDeg: number; // the direction the wind blows FROM
+  ffdi: number; // McArthur Forest Fire Danger Index
+  /** Forecast for the next hours (+1 h, +2 h); absent on rows stored before it existed. */
+  nextHours?: FireWeatherHour[];
+  /** Set when "now" is a Bureau of Meteorology station observation rather than the forecast model. */
+  station?: { name: string; distanceKm: number };
+}
+
+export type FireWeatherHour = Omit<FireWeather, "observedAt" | "fetchedAt" | "nextHours" | "station"> & { time: string };
 
 /** archived = an extinguished fire the coordinator has filed away (Resolved -> Archive). */
 export type BackendDispatchState = "awaiting" | "live" | "extinguished" | "archived";
@@ -128,11 +148,52 @@ export interface DecisionLogEntry {
   whenIso: string;
 }
 
+export type CrewType = "light" | "heavy" | "aerial";
+/** dispatched -> en_route -> on_scene; cleared = recalled or the fire is over (not shown on a crew). */
+export type AssignmentStatus = "dispatched" | "en_route" | "on_scene" | "cleared";
+
+export interface CrewAssignment {
+  id: string;
+  incidentId: string;
+  status: AssignmentStatus;
+  updatedAtIso: string;
+}
+
+/** A response crew, its station, and what it's doing now (assignment null = available). */
+export interface Crew {
+  id: string;
+  label: string;
+  type: CrewType;
+  station: { name: string; coords: { lat: number; lng: number } };
+  assignment: CrewAssignment | null;
+}
+
+/** A crew on scene asking for more help. crewType null = any crew. */
+export interface SupportRequest {
+  id: string;
+  incidentId: string;
+  crewId: string;
+  crewLabel: string;
+  crewType: CrewType | null;
+  note: string | null;
+  createdAtIso: string;
+}
+
+/** A comment on an incident. Permanent: comments are never edited or deleted. */
+export interface IncidentComment {
+  id: string;
+  incidentId: string;
+  body: string;
+  who: string;
+  whenIso: string;
+}
+
 export type ReviewReason =
   | "below_threshold"
   | "sent_by_coordinator"
   | "restored_not_fire"
-  | "restored_discarded";
+  | "restored_discarded"
+  | "no_fire_detected"; // smoke and flame both at level 1: the models saw no fire
 
 export type GroupState = "suggested" | "confirmed" | "kept_separate";
 
@@ -182,4 +243,6 @@ export interface Incident {
 
   /** Server-side values of the coordinator-editable fields, sent back by Undo (real API). */
   backend: BackendReviewState;
+  /** Weather at the newest image; drives the spread envelope on the map. Absent in mock data. */
+  weather?: FireWeather | null;
 }
