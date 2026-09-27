@@ -9,6 +9,7 @@ vi.mock("@/lib/data-source", () => ({
   dataSource: { ...server, getImagePreviewUrl: () => null },
   useMock: false,
   COORDINATOR_NAME: "EC",
+  currentActor: () => "EC",
   getSeedDecisionLog: () => [],
   getSeedGroup: () => null,
 }));
