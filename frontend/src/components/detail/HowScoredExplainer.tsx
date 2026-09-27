@@ -2,7 +2,8 @@ import type { Incident } from "@/lib/types";
 import { SEVERITY, SEVERITY_ORDER } from "@/lib/constants/severity";
 import { ElementScoreRows } from "@/components/primitives/ElementScoreRows";
 import { SectionHeading } from "@/components/primitives/Card";
-import { SEVERE_FFDI, compass, dangerRating, raisedByFireDanger } from "@/lib/utils/spread";
+import { SEVERE_FFDI, compass, dangerRating, raisedByFireDanger, weatherSource } from "@/lib/utils/spread";
+import { relativeTime } from "@/lib/utils/time";
 
 export function HowScoredExplainer({ incident }: { incident: Incident }) {
   const isFire = incident.flag !== "not_a_fire";
@@ -31,7 +32,11 @@ export function HowScoredExplainer({ incident }: { incident: Incident }) {
             ? "At FFDI 50 (legacy Severe) or above a fire can outrun direct attack, so the image's score was raised one level."
             : severe
               ? "FFDI 50 or above adds a level to the image's score, up to 4; not applied here."
-              : "Below FFDI 50, so the score is the image's alone."}
+              : "Below FFDI 50, so the score is the image's alone."}{" "}
+          <span style={{ color: "var(--muted)" }}>
+            Measured at {weatherSource(weather)}
+            {weather.fetchedAt ? `, updated ${relativeTime(weather.fetchedAt)}` : ""}.
+          </span>
         </p>
       ) : null}
 

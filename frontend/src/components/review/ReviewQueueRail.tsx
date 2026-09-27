@@ -11,6 +11,7 @@ const REASON_LABEL: Record<string, string> = {
   sent_by_coordinator: "Sent by coordinator",
   restored_not_fire: "Restored, was not a fire",
   restored_discarded: "Restored, was discarded",
+  no_fire_detected: "No smoke or flame seen",
 };
 
 export function ReviewQueueRail() {

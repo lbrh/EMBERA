@@ -325,6 +325,15 @@ export async function setGrouping(groupId: string, state: GroupAction) {
   return delay({ groupId, state });
 }
 
+// Merge and split rewrite incidents server-side; the mock seed has no server to do it against.
+export async function mergeIncidents(_sourceId: string, _targetId: string): Promise<void> {
+  throw new Error("Merging incidents needs the real backend.");
+}
+
+export async function splitImage(_imageId: string): Promise<string> {
+  throw new Error("Splitting incidents needs the real backend.");
+}
+
 export function getSeedGroup() {
   return seedGroup;
 }

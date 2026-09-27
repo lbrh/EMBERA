@@ -8,7 +8,7 @@ import { findIncidentToAttachTo } from './group-incident.ts';
 import { lookUpPlaceName } from './place-name.ts';
 import { lookUpFireWeather } from './fire-weather.ts';
 import { INDICATOR_MODELS, classifyIndicator, isIndicatorConfigured, type Indicator } from '../ai/indicator-models.ts';
-import { assessSeverity, type IndicatorReadings, type IndicatorConfidences } from './assess-severity.ts';
+import { assessSeverity, classifyFromIndicators, type IndicatorReadings, type IndicatorConfidences } from './assess-severity.ts';
 import { logger, errorMeta } from '../utils/logger.ts';
 import type { IngestionInput, ImageMetadata } from '../metadata/metadata.types.ts';
 
@@ -142,10 +142,8 @@ async function classifyAndUpdate(record: ImageMetadata, imageBuffer: Buffer): Pr
 
     try {
         if (indicators.every((indicator) => readings[indicator])) {
-            // ponytail: no fire/non-fire classifier is deployed, so every image is scored as 'fire';
-            // swap in a real classification_label once one exists.
             const result = assessSeverity({
-                classificationLabel: 'fire',
+                classificationLabel: classifyFromIndicators(readings as IndicatorReadings),
                 indicators: readings as IndicatorReadings,
                 confidences: confidences as IndicatorConfidences,
                 weather,

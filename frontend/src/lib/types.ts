@@ -92,6 +92,7 @@ export interface ApiIncidentRecord {
 /** Mirrors backend FireWeather (backend/src/metadata/metadata.types.ts). */
 export interface FireWeather {
   observedAt: string;
+  fetchedAt?: string; // when the backend looked it up; refreshed every ~30 min while the incident is open
   temperatureC: number;
   humidityPct: number;
   windKmh: number;
@@ -99,9 +100,11 @@ export interface FireWeather {
   ffdi: number; // McArthur Forest Fire Danger Index
   /** Forecast for the next hours (+1 h, +2 h); absent on rows stored before it existed. */
   nextHours?: FireWeatherHour[];
+  /** Set when "now" is a Bureau of Meteorology station observation rather than the forecast model. */
+  station?: { name: string; distanceKm: number };
 }
 
-export type FireWeatherHour = Omit<FireWeather, "observedAt" | "nextHours"> & { time: string };
+export type FireWeatherHour = Omit<FireWeather, "observedAt" | "fetchedAt" | "nextHours" | "station"> & { time: string };
 
 /** archived = an extinguished fire the coordinator has filed away (Resolved -> Archive). */
 export type BackendDispatchState = "awaiting" | "live" | "extinguished" | "archived";
@@ -189,7 +192,8 @@ export type ReviewReason =
   | "below_threshold"
   | "sent_by_coordinator"
   | "restored_not_fire"
-  | "restored_discarded";
+  | "restored_discarded"
+  | "no_fire_detected"; // smoke and flame both at level 1: the models saw no fire
 
 export type GroupState = "suggested" | "confirmed" | "kept_separate";
 

@@ -8,7 +8,7 @@ import { filteredIncidents, legendCounts, mapMarkers } from "@/lib/store/selecto
 import { SEVERITY } from "@/lib/constants/severity";
 import { STAGING_COORDS, distanceKm } from "@/lib/utils/geo";
 import { clusterByProximity } from "@/lib/utils/project";
-import { compass, dangerRating, spreadHours, spreadPerimeters } from "@/lib/utils/spread";
+import { compass, dangerRating, spreadHours, spreadPerimeters, weatherSource } from "@/lib/utils/spread";
 import { SeverityLegend } from "@/components/map/SeverityLegend";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { dataSource } from "@/lib/data-source";
@@ -141,6 +141,7 @@ function spreadTooltip(incident: Incident): string {
     `<strong>Indicative spread if unchecked</strong> · 1, 2 and 3 h<br>` +
     `FFDI ${w.ffdi} (legacy ${dangerRating(w.ffdi)}) · wind ${winds.join(" → ")} km/h` +
     `${winds.length > 1 ? " (forecast change)" : ""}<br>` +
+    `Now: ${escapeHtml(weatherSource(w))}<br>` +
     `Rough estimate, not a forecast: no ember spotting or slope`
   );
 }

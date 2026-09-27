@@ -107,11 +107,22 @@ export function parseSeverityAssessmentInput(body: unknown): SeverityAssessmentI
     };
 }
 
+// Smoke or flame at level 2-4 (either one) means the image shows a fire.
+export function showsFire(indicators: IndicatorReadings): boolean {
+    return SMOKE_WEIGHT[indicators.smokeDensity] > 1 || FLAME_WEIGHT[indicators.flameVisibility] > 1;
+}
+
+// No separate fire/non-fire model is deployed, so the label comes from the indicators: smoke or
+// flame means fire; neither means the models saw no fire, which a person checks in manual review
+// ('uncertain' always routes there) rather than the image being dismissed automatically.
+export function classifyFromIndicators(indicators: IndicatorReadings): 'fire' | 'uncertain' {
+    return showsFire(indicators) ? 'fire' : 'uncertain';
+}
+
 // Vegetation is fuel: it only adds to severity when there's any smoke or flame, otherwise it
 // counts 0 (a green hillside with no fire isn't a hazard). Total range 3-16.
 function effectiveVegetationWeight(indicators: IndicatorReadings): 0 | 1 | 2 | 3 | 4 {
-    const fire = SMOKE_WEIGHT[indicators.smokeDensity] > 1 || FLAME_WEIGHT[indicators.flameVisibility] > 1;
-    return fire ? VEGETATION_WEIGHT[indicators.vegetationImpact] : 0;
+    return showsFire(indicators) ? VEGETATION_WEIGHT[indicators.vegetationImpact] : 0;
 }
 
 export function calculateSeverityScore(indicators: IndicatorReadings): 1 | 2 | 3 | 4 {
@@ -222,9 +233,11 @@ export function assessSeverity({
     const reviewNeeded = classificationLabel === 'uncertain' || needsManualReview(confidenceScore);
 
     const reviewReason =
-        classificationLabel === 'uncertain'
-            ? 'classification uncertain'
-            : `lowest confidence on ${weakestIndicator} (${confidenceScore})`;
+        classificationLabel !== 'uncertain'
+            ? `lowest confidence on ${weakestIndicator} (${confidenceScore})`
+            : showsFire(indicators)
+              ? 'classification uncertain'
+              : 'no smoke or flame detected';
     const scored = buildSeverityExplanation(indicators, imageScore) + describeFireDanger(imageScore, severityScore, weather);
     const explanation = reviewNeeded ? `${scored} Routed for manual review — ${reviewReason}.` : scored;
 
@@ -238,5 +251,29 @@ export function assessSeverity({
         vegetationImpact: indicators.vegetationImpact,
         infrastructureImpact: indicators.infrastructureImpact,
         assessmentStatus: reviewNeeded ? 'unable_to_assess' : 'assessed',
+    };
+}
+
+const REVIEW_NOTE = / Routed for manual review — .*$/;
+
+/** After a weather refresh: the image's readings haven't changed, only the weather, so only the
+ * fire-danger modifier (and the explanation that describes it) is recomputed. Images without a
+ * full AI score just take the new weather. */
+export function reassessForWeather(
+    record: ImageMetadata,
+    weather: FireWeather,
+): Pick<ImageMetadata, 'weather' | 'severityScore' | 'severityExplanation'> {
+    const { smokeDensity, flameVisibility, vegetationImpact, infrastructureImpact } = record;
+    if (record.severityScore == null || !smokeDensity || !flameVisibility || !vegetationImpact || !infrastructureImpact) {
+        return { weather, severityScore: record.severityScore, severityExplanation: record.severityExplanation };
+    }
+    const indicators = { smokeDensity, flameVisibility, vegetationImpact, infrastructureImpact };
+    const imageScore = calculateSeverityScore(indicators);
+    const severityScore = applyFireDanger(imageScore, weather);
+    const reviewNote = record.severityExplanation?.match(REVIEW_NOTE)?.[0] ?? '';
+    return {
+        weather,
+        severityScore,
+        severityExplanation: buildSeverityExplanation(indicators, imageScore) + describeFireDanger(imageScore, severityScore, weather) + reviewNote,
     };
 }

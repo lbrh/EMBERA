@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assessSeverity, calculateSeverityScore } from '../src/pipeline/assess-severity.ts';
+import { assessSeverity, calculateSeverityScore, classifyFromIndicators, reassessForWeather } from '../src/pipeline/assess-severity.ts';
 import { forestFireDangerIndex } from '../src/pipeline/fire-weather.ts';
 
 test('dense vegetation adds nothing when there is no smoke or flame', () => {
@@ -72,4 +72,32 @@ test('fire danger never pushes severity past 4', () => {
         },
     } as const;
     assert.equal(assessSeverity({ ...worst, weather: weather(120) }).severityScore, 4);
+});
+
+test('smoke or flame at 2-4 (either one) is a fire; neither goes to manual review', () => {
+    const none = { smokeDensity: 'none_or_haze', flameVisibility: 'no_visible_flame', vegetationImpact: 'dense_vegetation', infrastructureImpact: 'sparse_infrastructure' } as const;
+    assert.equal(classifyFromIndicators({ ...none, smokeDensity: 'moderate' }), 'fire');
+    assert.equal(classifyFromIndicators({ ...none, flameVisibility: 'some_flame' }), 'fire');
+    assert.equal(classifyFromIndicators(none), 'uncertain');
+
+    const confident = { smokeDensity: 0.95, flameVisibility: 0.95, vegetationImpact: 0.95, infrastructureImpact: 0.95 };
+    const result = assessSeverity({ classificationLabel: classifyFromIndicators(none), indicators: none, confidences: confident });
+    assert.equal(result.classificationLabel, 'uncertain');
+    assert.equal(result.assessmentStatus, 'unable_to_assess'); // manual review, even at high confidence
+    assert.match(result.severityExplanation!, /no smoke or flame detected/);
+});
+
+test('a weather refresh re-applies fire danger to the stored readings and keeps the review note', () => {
+    const scored = assessSeverity({ ...moderateFire, weather: weather(10) }); // severity 2
+    const stored = { ...scored, severityExplanation: `${scored.severityExplanation} Routed for manual review — lowest confidence on smokeDensity (0.7).` };
+
+    const worse = reassessForWeather(stored as never, weather(80));
+    assert.equal(worse.severityScore, 3);
+    assert.match(worse.severityExplanation!, /raised from 2 to 3\. Routed for manual review — lowest confidence/);
+
+    const calmer = reassessForWeather({ ...stored, severityScore: 3 } as never, weather(10));
+    assert.equal(calmer.severityScore, 2);
+
+    const unscored = reassessForWeather({ ...stored, severityScore: null } as never, weather(80));
+    assert.deepEqual([unscored.severityScore, unscored.weather?.ffdi], [null, 80]);
 });

@@ -26,7 +26,7 @@ register(
       }`
     )
 );
-const { spreadPerimeters } = await import("../src/lib/utils/spread.ts");
+const { MK5_BIAS_CORRECTION, spreadPerimeters } = await import("../src/lib/utils/spread.ts");
 const { distanceKm } = await import("../src/lib/utils/geo.ts");
 const { forestFireDangerIndex } = await import("../../backend/src/pipeline/fire-weather.ts");
 type FireWeather = import("../src/lib/types.ts").FireWeather;
@@ -227,7 +227,8 @@ for (let w = 1; w < windows.length; w++) {
       const shippedPred = predicted(origin, shipped, veg, hours);
       sample[`shipped_v${veg}`] = +shippedPred.advanceKm.toFixed(2);
       sample[`shipped_v${veg}_bearing`] = Math.round(shippedPred.bearing);
-      sample[`mcarthur_v${veg}`] = +predicted(origin, weatherFor(h, A.t, hours, false), veg, hours).advanceKm.toFixed(2);
+      // floor off and the app's bias correction taken back out: plain Mk5 (growth scales linearly with rate)
+      sample[`mcarthur_v${veg}`] = +(predicted(origin, weatherFor(h, A.t, hours, false), veg, hours).advanceKm / MK5_BIAS_CORRECTION).toFixed(2);
     }
     sample.tenPercent = +(hoursList.reduce((s, x) => s + 0.1 * x.windKmh, 0)).toFixed(2); // rule alone, straight line
     samples.push(sample);
@@ -235,8 +236,8 @@ for (let w = 1; w < windows.length; w++) {
 }
 
 // ---- report ----
-function stats(name: string, pred: (s: Sample) => number) {
-  const ratios = samples.map((s) => pred(s) / s.observedKm);
+function stats(name: string, pred: (s: Sample) => number, subset = samples) {
+  const ratios = subset.map((s) => pred(s) / s.observedKm);
   const logs = ratios.map(Math.log);
   const geo = Math.exp(logs.reduce((a, b) => a + b, 0) / logs.length);
   const within2 = ratios.filter((r) => r >= 0.5 && r <= 2).length / ratios.length;
@@ -250,16 +251,24 @@ console.log(`Detections ${pixels.length}, overpass windows ${windows.length}, fi
 console.log(`Observed advance: median ${percentile(samples.map((s) => s.observedKm), 0.5)} km over a median ${percentile(samples.map((s) => s.hours), 0.5)} h\n`);
 console.log("| Model | Median predicted / observed | Geometric mean ratio | Within 2x | Underpredicted | MAPE |");
 console.log("|---|---|---|---|---|---|");
-console.log(stats("McArthur Mk5 only, dense fuel (25 t/ha)", (s) => s.mcarthur_v4 as number));
-console.log(stats("McArthur Mk5 only, moderate fuel (12 t/ha)", (s) => s.mcarthur_v3 as number));
+console.log(stats("McArthur Mk5 uncorrected, dense fuel (25 t/ha)", (s) => s.mcarthur_v4 as number));
+console.log(stats("McArthur Mk5 uncorrected, moderate fuel (12 t/ha)", (s) => s.mcarthur_v3 as number));
 console.log(stats("10% wind rule alone", (s) => s.tenPercent as number));
-console.log(stats("Shipped model, dense fuel", (s) => s.shipped_v4 as number));
-console.log(stats("Shipped model, moderate fuel", (s) => s.shipped_v3 as number));
+console.log(stats(`Shipped model (Mk5 x ${MK5_BIAS_CORRECTION} + floor), dense fuel`, (s) => s.shipped_v4 as number));
+console.log(stats(`Shipped model (Mk5 x ${MK5_BIAS_CORRECTION} + floor), moderate fuel`, (s) => s.shipped_v3 as number));
+
+// the correction was fitted on December only; January is the held-out test
+const december = samples.filter((s) => s.start < "2020-01");
+const january = samples.filter((s) => s.start >= "2020-01");
+const fitted = Math.exp(-december.reduce((a, s) => a + Math.log((s.mcarthur_v4 as number) / s.observedKm), 0) / december.length);
+console.log(`\nBias correction fitted on December (n=${december.length}, dense fuel): ${fitted.toFixed(2)} (app uses ${MK5_BIAS_CORRECTION})`);
+console.log(stats("Uncorrected Mk5, January held out", (s) => s.mcarthur_v4 as number, january));
+console.log(stats("Shipped model, January held out", (s) => s.shipped_v4 as number, january));
 console.log(`\nDirection: median error ${percentile(dirErr, 0.5)}°, within 45° in ${((dirErr.filter((d) => d <= 45).length / dirErr.length) * 100).toFixed(0)}% of runs`);
 
 // where the error comes from
 const winds = samples.map((s) => s.meanWindKmh);
-const floorChanged = samples.filter((s) => Math.abs((s.shipped_v4 as number) - (s.mcarthur_v4 as number)) > 0.01).length;
+const floorChanged = samples.filter((s) => Math.abs((s.shipped_v4 as number) - (s.mcarthur_v4 as number) * MK5_BIAS_CORRECTION) > 0.02).length;
 console.log(`Archived wind (mean over each run): median ${percentile(winds, 0.5)} km/h, 75th pct ${percentile(winds, 0.75)}, max ${Math.max(...winds)}`);
 console.log(`10% rule floor changed the prediction in ${floorChanged} of ${samples.length} runs`);
 const median = (sub: Sample[], pred: (s: Sample) => number) => percentile(sub.map((s) => pred(s) / s.observedKm), 0.5).toFixed(2);

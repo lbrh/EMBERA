@@ -21,7 +21,7 @@
 
 - **No fire gate model.** Every image is treated as a fire.
 - **Vegetation and infrastructure models** predate the rubric and must be retrained. Until infrastructure has a 4-output model, no image gets an automatic score.
-- **Not built:** `priority_rank` computation, override endpoint and history, grouping confirm/split, archive/resolved flows.
+- **Not built:** `priority_rank` computation, override endpoint and history, archive/resolved flows.
 - **Frontend** is a scaffold.
 - **Old backend images** can't be rolled back to (they write a dropped column).
 

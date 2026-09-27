@@ -10,6 +10,7 @@ import { DetailActionsBar } from "@/components/detail/DetailActionsBar";
 import { OverrideSeverityCard } from "@/components/detail/OverrideSeverityCard";
 import { HowScoredExplainer } from "@/components/detail/HowScoredExplainer";
 import { NearbyStrip } from "@/components/detail/NearbyStrip";
+import { MergeIncidents } from "@/components/detail/MergeIncidents";
 import { IncidentGallery } from "@/components/detail/IncidentGallery";
 import { ActivityFeed } from "@/components/detail/ActivityFeed";
 import { AssignedCrews } from "@/components/dispatch/AssignedCrews";
@@ -209,6 +210,8 @@ export default function IncidentDetailPage() {
             ) : null}
 
             <OverrideSeverityCard incident={incident} />
+
+            <MergeIncidents incident={incident} />
 
             <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               <SectionHeading as="h2" note="Comments and decisions, newest first, with who and when.">

@@ -27,13 +27,13 @@ describe("spreadRateKmh", () => {
   });
 
   it("floors McArthur at 10% of the wind on dry, windy days in forest", () => {
-    expect(spreadRateKmh(dry, 3)).toBeCloseTo(3.5, 5); // McArthur alone: 0.0012 x 40 x 12 = 0.576
+    expect(spreadRateKmh(dry, 3)).toBeCloseTo(3.5, 5); // McArthur alone: 2.5 x 0.0012 x 40 x 12 = 1.44
   });
 
   it("leaves McArthur alone below 30 km/h, in moist fuel, or in sparse (possibly grass) fuel", () => {
-    expect(spreadRateKmh({ ...dry, windKmh: 30 }, 3)).toBeCloseTo(0.576, 5);
-    expect(spreadRateKmh({ ...dry, humidityPct: 60 }, 3)).toBeCloseTo(0.576, 5);
-    expect(spreadRateKmh(dry, 2)).toBeCloseTo(0.24, 5);
+    expect(spreadRateKmh({ ...dry, windKmh: 30 }, 3)).toBeCloseTo(1.44, 5);
+    expect(spreadRateKmh({ ...dry, humidityPct: 60 }, 3)).toBeCloseTo(1.44, 5);
+    expect(spreadRateKmh(dry, 2)).toBeCloseTo(0.6, 5);
   });
 });
 
@@ -44,8 +44,8 @@ describe("spreadPerimeters", () => {
     const h2 = head(rings[1]);
     expect(h2.lat).toBeLessThan(origin.lat);
     expect(h2.lng).toBeGreaterThan(origin.lng);
-    // R = 0.0012 x 40 x 12 t/ha = 0.576 km/h, so 2 h puts the head ~1.15 km out
-    expect(h2.d).toBeCloseTo(1.152, 2);
+    // R = 2.5 x 0.0012 x 40 x 12 t/ha = 1.44 km/h, so 2 h puts the head ~2.88 km out
+    expect(h2.d).toBeCloseTo(2.88, 2);
     expect(head(rings[2]).d).toBeCloseTo(head(rings[0]).d * 3, 3);
   });
 
@@ -59,8 +59,8 @@ describe("spreadPerimeters", () => {
     const steady = spreadPerimeters(origin, weather(315, 315, 315), 3)![2];
     const change = spreadPerimeters(origin, weather(315, 270, 225), 3)![2];
     const northmost = (ring: [number, number][]) => Math.max(...ring.map(([lat]) => lat));
-    // the last hour runs NE at 0.576 km/h, so the front ends ~0.4 km further north than under a steady NW
-    expect(northmost(change)).toBeGreaterThan(northmost(steady) + 0.003); // > ~0.33 km
+    // the last hour runs NE at 1.44 km/h, so the front ends ~1 km further north than under a steady NW
+    expect(northmost(change)).toBeGreaterThan(northmost(steady) + 0.0075); // > ~0.8 km
   });
 
   it("is null with no fuel reading", () => {

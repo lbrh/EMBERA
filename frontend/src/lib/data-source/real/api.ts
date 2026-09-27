@@ -1,6 +1,7 @@
 import { ARCHIVED_REASON, normalizeIncident } from "@/lib/normalize";
 import { OPERATING_REGION } from "@/lib/utils/geo";
 import { bandFromSum } from "@/lib/constants/severity";
+import { incidentRef } from "@/lib/utils/ref";
 import type {
   ApiIncidentRecord,
   AssignmentStatus,
@@ -211,6 +212,7 @@ interface ApiDecision {
 
 const FIELD_LABELS: Record<string, string> = {
   severityScoreOverride: "Severity",
+  severityScore: "AI severity (fire weather)",
   classificationLabelOverride: "Classification",
   assessmentStatus: "Review status",
   dispatchState: "Dispatch",
@@ -224,6 +226,9 @@ function decisionSummary(d: ApiDecision): string {
     const step = (s: string | null) => (s ? (STEP_LABELS[s] ?? s) : null);
     return d.fromValue ? `${d.field.slice(5)}: ${step(d.fromValue)} → ${step(d.toValue)}` : `${d.field.slice(5)} ${step(d.toValue)}`;
   }
+  if (d.field === "mergedFrom") return `Merged in ${incidentRef(d.toValue ?? "")}: its images, crews, comments and history now live here`;
+  if (d.field === "splitTo") return `An image was split off into ${incidentRef(d.toValue ?? "")}`;
+  if (d.field === "splitFrom") return `Split off from ${incidentRef(d.toValue ?? "")}`;
   if (d.field === "supportRequest") {
     return d.fromValue ? `Support request ${d.toValue}` : `Support requested: ${d.toValue === "any crew" ? "any crew" : `${d.toValue} crew`}`;
   }
@@ -333,6 +338,17 @@ export async function dismissSupportRequest(id: string): Promise<void> {
 /** Recalls a crew (clears its assignment). The backend puts the incident back in the order if it was the last crew. */
 export async function recallCrew(assignmentId: string): Promise<void> {
   await request(`/assignments/${encodeURIComponent(assignmentId)}`, jsonInit("PATCH", { status: "cleared" }));
+}
+
+/** Folds `sourceId` into `targetId`: images, crews, comments and history move; the source is gone. */
+export async function mergeIncidents(sourceId: string, targetId: string): Promise<void> {
+  await request(`/incidents/${encodeURIComponent(sourceId)}/merge`, jsonInit("POST", { intoIncidentId: targetId }));
+}
+
+/** Moves one image into a new incident of its own; returns the new incident's id. */
+export async function splitImage(imageId: string): Promise<string> {
+  const { incidentId } = await request<{ incidentId: string }>(`/images/${encodeURIComponent(imageId)}/split`, jsonInit("POST", {}));
+  return incidentId;
 }
 
 export async function setGrouping(

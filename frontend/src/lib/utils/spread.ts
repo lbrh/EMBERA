@@ -7,8 +7,8 @@ import type { FireWeather, Incident } from "@/lib/types";
  * such in the UI; it is not a fire behaviour forecast (no terrain, fuel maps or ember spotting).
  *
  * - Rate of spread: McArthur Mk5 forest meter, R = 0.0012 x FFDI x fuel load (km/h) (Noble et al.
- *   1980), floored by Cruz & Alexander's (2019) 10% wind speed rule on windy, dry days, because Mk5
- *   underpredicts wildfire spread 2-3x (CSIRO model library; see docs/live/spread-backtest.md).
+ *   1980), times a bias correction fitted on Black Summer satellite data, and floored by Cruz &
+ *   Alexander's (2019) 10% wind speed rule on windy, dry days (see docs/live/spread-backtest.md).
  * - Shape: an ellipse with the ignition point at its rear focus (Van Wagner 1969), stretched
  *   downwind by Alexander's (1985) length-to-breadth ratio for the wind speed.
  */
@@ -49,10 +49,16 @@ export function fineFuelMoisturePct(temperatureC: number, humidityPct: number): 
 // applies where the image shows moderate or dense vegetation.
 const TEN_PERCENT_RULE = { minWindKmh: 30, maxMoisturePct: 7, minVegetationLevel: 3 };
 
+// Mk5 underpredicts wildfire spread (CSIRO: 2-3x). Fitted on 140 December 2019 VIIRS fire runs
+// (geometric-mean bias 1/2.45 at dense fuel) and checked on 513 held-out January 2020 runs, where
+// the median predicted/observed went from 0.54 to 1.31. Rounded to 2.5. Refit with
+// scripts/spread-backtest.ts if the weather source or fuel mapping changes.
+export const MK5_BIAS_CORRECTION = 2.5;
+
 type RateInputs = Pick<FireWeather, "ffdi" | "windKmh" | "temperatureC" | "humidityPct">;
 
 export function spreadRateKmh(hour: RateInputs, vegetationLevel: number): number {
-  const mcArthur = 0.0012 * hour.ffdi * (FUEL_LOAD_T_HA[vegetationLevel] ?? 0);
+  const mcArthur = MK5_BIAS_CORRECTION * 0.0012 * hour.ffdi * (FUEL_LOAD_T_HA[vegetationLevel] ?? 0);
   const rule = TEN_PERCENT_RULE;
   const ruleApplies =
     vegetationLevel >= rule.minVegetationLevel &&
@@ -63,6 +69,11 @@ export function spreadRateKmh(hour: RateInputs, vegetationLevel: number): number
 
 export function lengthToBreadth(windKmh: number): number {
   return 1 + 8.729 * (1 - Math.exp(-0.03 * windKmh)) ** 2.155;
+}
+
+/** Where the current conditions came from, for display. */
+export function weatherSource(weather: FireWeather): string {
+  return weather.station ? `BoM ${weather.station.name} station, ${Math.round(weather.station.distanceKm)} km away` : "forecast model (no station nearby)";
 }
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];

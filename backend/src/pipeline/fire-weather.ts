@@ -1,7 +1,11 @@
 import { logger, errorMeta } from '../utils/logger.ts';
+import { nearestStationObservation } from './bom-stations.ts';
 import type { FireWeather, FireWeatherHour } from '../metadata/metadata.types.ts';
 
-// Current weather at a point from Open-Meteo: free, no key, 10k calls/day for non-commercial use.
+// Weather at a point: the nearest Bureau of Meteorology station's latest observation for "now" when
+// one is close enough (bom-stations.ts), and Open-Meteo's forecast for the hours after (free, no
+// key, 10k calls/day for non-commercial use). Gridded model wind runs low on bad fire days
+// (docs/live/spread-backtest.md), which is why a real observation wins when there is one.
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 const TIMEOUT_MS = 5000;
 const FORECAST_HOURS = 2; // the spread envelope runs 3 h: now, then these
@@ -33,6 +37,7 @@ export function dangerRating(ffdi: number): string {
 }
 
 interface OpenMeteoResponse {
+    elevation?: number; // ground height of the grid point, m
     current?: {
         time: string;
         temperature_2m: number;
@@ -66,22 +71,39 @@ function nextHoursFrom(currentTime: string, hourly: NonNullable<OpenMeteoRespons
         .slice(0, FORECAST_HOURS);
 }
 
-/** Weather and fire danger at a point now and for the next hours, or null if Open-Meteo can't be reached. */
-export async function lookUpFireWeather(latitude: number, longitude: number): Promise<FireWeather | null> {
+async function modelWeather(latitude: number, longitude: number): Promise<{ weather: FireWeather; elevationM: number | null } | null> {
     const url = `${OPEN_METEO}?latitude=${latitude}&longitude=${longitude}&timezone=UTC&wind_speed_unit=kmh`
         + `&current=${FIELDS}&hourly=${FIELDS}&forecast_hours=${FORECAST_HOURS + 2}`;
     try {
         const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
         if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
-        const { current, hourly } = (await res.json()) as OpenMeteoResponse;
+        const { current, hourly, elevation } = (await res.json()) as OpenMeteoResponse;
         if (!current) throw new Error('Open-Meteo returned no current weather');
-        return {
+        const weather = {
             observedAt: utc(current.time),
             ...conditions(current.temperature_2m, current.relative_humidity_2m, current.wind_speed_10m, current.wind_direction_10m),
             nextHours: hourly ? nextHoursFrom(current.time, hourly) : [],
         };
+        return { weather, elevationM: elevation ?? null };
     } catch (err) {
         logger.warn('fire weather lookup failed', errorMeta(err));
         return null;
     }
+}
+
+/** Weather and fire danger at a point now and for the next hours, or null if neither the
+ * Bureau nor Open-Meteo can be reached. */
+export async function lookUpFireWeather(latitude: number, longitude: number): Promise<FireWeather | null> {
+    const model = await modelWeather(latitude, longitude);
+    const nearest = await nearestStationObservation(latitude, longitude, model?.elevationM ?? null);
+    const fetchedAt = new Date().toISOString();
+    if (!nearest) return model ? { ...model.weather, fetchedAt } : null;
+    const { station, distanceKm } = nearest;
+    return {
+        observedAt: station.observedAt,
+        fetchedAt,
+        ...conditions(station.temperatureC, station.humidityPct, station.windKmh, station.windFromDeg),
+        nextHours: model?.weather.nextHours ?? [],
+        station: { name: station.name, distanceKm: Math.round(distanceKm * 10) / 10 },
+    };
 }

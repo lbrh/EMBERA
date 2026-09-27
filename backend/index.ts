@@ -8,6 +8,7 @@ import { rateLimit } from './src/middleware/rate-limit.middleware.ts';
 import { cors } from './src/middleware/cors.middleware.ts';
 import { checkDatabaseConnection } from './src/metadata/metadata.repository.ts';
 import { logger, errorMeta } from './src/utils/logger.ts';
+import { startWeatherRefresh } from './src/pipeline/refresh-weather.ts';
 
 const app: Express = express();
 const port = 3000;
@@ -45,6 +46,11 @@ app.use(coordinatorRouter); // review, override, dispatch, decision log
 const server = app.listen(port, () => {
     logger.info('app listening', { port });
 });
+
+// Live weather for open incidents (station wind + forecast). 0 turns it off, e.g. to keep the demo
+// seed's fixed weather.
+const weatherRefreshMinutes = Number(process.env.WEATHER_REFRESH_MINUTES ?? 30);
+if (weatherRefreshMinutes > 0) startWeatherRefresh(weatherRefreshMinutes);
 
 // Code Engine sends SIGTERM on scale-down; finish in-flight requests instead of
 // dropping them mid-upload.

@@ -21,7 +21,7 @@ import pg from 'pg';
 import { v5 as uuidv5 } from 'uuid';
 import '../src/utils/load-env.ts';
 import { buildObjectKey, deleteImage, listObjectKeys, uploadImage } from '../src/storage/cos.service.ts';
-import { assessSeverity, type IndicatorReadings } from '../src/pipeline/assess-severity.ts';
+import { assessSeverity, classifyFromIndicators, type IndicatorReadings } from '../src/pipeline/assess-severity.ts';
 import { forestFireDangerIndex } from '../src/pipeline/fire-weather.ts';
 import type { DispatchState, FireWeather, SourceType } from '../src/metadata/metadata.types.ts';
 
@@ -224,7 +224,7 @@ function build() {
             };
             const assessed = assessSeverity({
                 weather,
-                classificationLabel: 'fire', // same as the live pipeline: no fire/non-fire model yet
+                classificationLabel: classifyFromIndicators(shot.readings), // same as the live pipeline
                 indicators: shot.readings,
                 confidences: { flameVisibility: c, smokeDensity: clamp(c + 0.07), infrastructureImpact: clamp(c + 0.09), vegetationImpact: clamp(c + 0.12) },
             });

@@ -55,6 +55,7 @@ export interface ImageMetadata {
 
 export interface FireWeather {
     observedAt: string;
+    fetchedAt?: string; // when the app looked it up (absent on rows stored before the live refresh)
     temperatureC: number;
     humidityPct: number;
     windKmh: number;
@@ -63,9 +64,12 @@ export interface FireWeather {
     // The next hours' forecast (+1 h, +2 h), for the spread envelope to follow a wind change.
     // Absent on rows stored before it existed.
     nextHours?: FireWeatherHour[];
+    // Set when the current conditions are a Bureau of Meteorology station's observation rather
+    // than the forecast model's; the forecast hours always come from the model.
+    station?: { name: string; distanceKm: number };
 }
 
-export type FireWeatherHour = Omit<FireWeather, 'observedAt' | 'nextHours'> & { time: string };
+export type FireWeatherHour = Omit<FireWeather, 'observedAt' | 'fetchedAt' | 'nextHours' | 'station'> & { time: string };
 
 // Read shape for the incident queries: an image plus its incident's dispatch state
 // (null = no coordinator dispatch decision yet).

@@ -49,9 +49,10 @@ flowchart TD
 Notes:
 
 - **The response doesn't wait for classification.** `/ingest` returns as soon as the image is stored. Scoring takes about 10 s and is written to the record afterwards. Clients read results from `/incidents` or `/order` (D-21).
-- **Grouping** (2 km / 6 h, nearest wins) runs under a lock so two near-simultaneous uploads can't create two incidents. Coordinator confirm/split is not built.
+- **Grouping** (2 km / 6 h, nearest wins, open incidents only) runs under a lock so two near-simultaneous uploads can't create two incidents. A coordinator fixes a wrong call by merging two incidents or splitting an image off (incident page).
 - **Operating region** is a placeholder bounding box for Victoria, AU (lat -39.2 to -33.98, lon 140.96 to 150.03) in `validate.ts`.
-- **Fire gate** is not built; every image is scored with `classification_label = fire` (D-22).
+- **Fire gate** is the smoke/flame rule, not a model: smoke or flame at 2–4 is `fire`; both at 1 is `uncertain` and goes to manual review (D-33).
+- **Fire weather** is looked up alongside classification: the nearest Bureau of Meteorology station within 40 km and 400 m of height for "now", Open-Meteo for the next 2 hours. A background job refreshes open incidents every `WEATHER_REFRESH_MINUTES` (default 30, 0 = off), at startup too, under a try-lock so one instance does it (D-34).
 - **Prioritisation** (`priority_rank`) is not computed yet.
 - **External classification service** (the Sprint 1 request/response contract, `CLASSIFICATION_SERVICE_URL`) was never built and its code has been removed; the direct watsonx deployments replaced it.
 
@@ -71,6 +72,8 @@ All routes except `/` and `/health` need an `x-api-key` header whose value is li
 | POST | `/images/:imageId/assess` | Manual scoring: JSON with `classification_label`, the four indicator labels and `confidences`. Runs the rubric and saves the result. **`classifier` caller only.** |
 | PATCH | `/images/:imageId/decision` | Coordinator review/override: any of `severityScoreOverride` (1–4 or null), `classificationLabelOverride` (label or null), `assessmentStatus` (`assessed`/`unable_to_assess`), plus `by`. Each changed field is logged. **`frontend` caller only.** |
 | PUT | `/incidents/:incidentId/dispatch` | `{state: awaiting \| live \| extinguished, by}`: dispatch, cancel, extinguish, reopen. Logged. **`frontend` caller only.** |
+| POST | `/incidents/:incidentId/merge` | `{ intoIncidentId, by }`: moves every image, crew assignment, comment, decision and support request of this incident into the other one, which becomes live if either was. Open incidents only (409 otherwise). **`frontend` caller only.** |
+| POST | `/images/:imageId/split` | `{ by }`: moves one image into a new incident, with its own decisions. 201 `{ incidentId, fromIncidentId }`; 409 for an incident's only image. **`frontend` caller only.** |
 | GET | `/incidents/:incidentId/decisions` | Decision log, newest first: field, from, to, who, when. **`frontend` caller only.** |
 | GET | `/incidents/:incidentId/comments` | Comments, newest first: author, body, when. **`frontend` caller only.** |
 | GET | `/crews` | Every crew with its station and open assignment (`null` = available), by label. **`frontend` caller only.** |
