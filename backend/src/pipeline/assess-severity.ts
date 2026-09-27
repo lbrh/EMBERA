@@ -1,5 +1,7 @@
 import { ValidationError } from './validate.ts';
+import { SEVERE_FFDI, dangerRating } from './fire-weather.ts';
 import type {
+    FireWeather,
     ImageMetadata,
     ClassificationLabel,
     SmokeDensity,
@@ -163,6 +165,22 @@ export interface SeverityAssessmentInput {
     classificationLabel: ClassificationLabel;
     indicators: IndicatorReadings;
     confidences: IndicatorConfidences;
+    // Weather at the scene; null/absent = scored from the image alone.
+    weather?: FireWeather | null;
+}
+
+// The image shows how bad the fire is now; the weather says how fast it can get worse. At Severe
+// fire danger or above, one level is added (capped at 4) rather than blending weather into the
+// indicator sum, so the image-only rubric stays readable and a coordinator can still see both.
+export function applyFireDanger(imageScore: 1 | 2 | 3 | 4, weather: FireWeather | null | undefined): 1 | 2 | 3 | 4 {
+    if (!weather || weather.ffdi < SEVERE_FFDI) return imageScore;
+    return Math.min(4, imageScore + 1) as 1 | 2 | 3 | 4;
+}
+
+function describeFireDanger(imageScore: number, severityScore: number, weather: FireWeather | null | undefined): string {
+    if (!weather || weather.ffdi < SEVERE_FFDI) return '';
+    const raised = severityScore > imageScore ? `, so raised from ${imageScore} to ${severityScore}` : '';
+    return ` Fire danger ${dangerRating(weather.ffdi)} (FFDI ${weather.ffdi}, wind ${Math.round(weather.windKmh)} km/h)${raised}.`;
 }
 
 export type SeverityAssessmentResult = Pick<
@@ -182,6 +200,7 @@ export function assessSeverity({
     classificationLabel,
     indicators,
     confidences,
+    weather,
 }: SeverityAssessmentInput): SeverityAssessmentResult {
     if (classificationLabel === 'non_fire' || classificationLabel === 'extinguished') {
         return {
@@ -197,7 +216,8 @@ export function assessSeverity({
         };
     }
 
-    const severityScore = calculateSeverityScore(indicators);
+    const imageScore = calculateSeverityScore(indicators);
+    const severityScore = applyFireDanger(imageScore, weather);
     const { confidenceScore, weakestIndicator } = calculateConfidenceScore(confidences);
     const reviewNeeded = classificationLabel === 'uncertain' || needsManualReview(confidenceScore);
 
@@ -205,9 +225,8 @@ export function assessSeverity({
         classificationLabel === 'uncertain'
             ? 'classification uncertain'
             : `lowest confidence on ${weakestIndicator} (${confidenceScore})`;
-    const explanation = reviewNeeded
-        ? `${buildSeverityExplanation(indicators, severityScore)} Routed for manual review — ${reviewReason}.`
-        : buildSeverityExplanation(indicators, severityScore);
+    const scored = buildSeverityExplanation(indicators, imageScore) + describeFireDanger(imageScore, severityScore, weather);
+    const explanation = reviewNeeded ? `${scored} Routed for manual review — ${reviewReason}.` : scored;
 
     return {
         classificationLabel,

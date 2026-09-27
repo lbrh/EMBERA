@@ -47,6 +47,7 @@ const COLUMNS = {
     ingestionError: 'ingestion_error',
     contentHash: 'content_hash',
     placeName: 'place_name',
+    weather: 'weather',
 } as const satisfies Record<keyof ImageMetadata, string>;
 
 function fromRow(row: Record<string, unknown>): ImageMetadata {
@@ -207,12 +208,15 @@ export interface LatestIncidentImage {
 }
 
 // One row per incident: its most recent image, for the auto-grouping check in
-// pipeline/group-incident.ts.
+// pipeline/group-incident.ts. Only open incidents: a fresh photo next to an extinguished fire or
+// a dismissed false alarm starts a new incident, rather than landing hidden inside a closed one.
 export async function findLatestImagePerIncident(): Promise<LatestIncidentImage[]> {
     const { rows } = await pool.query(
-        `SELECT DISTINCT ON (incident_id) incident_id, latitude, longitude, "timestamp"
-         FROM images
-         ORDER BY incident_id, "timestamp" DESC`,
+        `SELECT DISTINCT ON (i.incident_id) i.incident_id, i.latitude, i.longitude, i."timestamp"
+         FROM images i
+         LEFT JOIN incident_dispatch d ON d.incident_id = i.incident_id
+         WHERE d.state IS NULL OR d.state NOT IN ('extinguished', 'archived')
+         ORDER BY i.incident_id, i."timestamp" DESC`,
     );
     return rows.map((row) => ({
         incidentId: row.incident_id,

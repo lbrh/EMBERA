@@ -2,11 +2,15 @@ import type { Incident } from "@/lib/types";
 import { SEVERITY, SEVERITY_ORDER } from "@/lib/constants/severity";
 import { ElementScoreRows } from "@/components/primitives/ElementScoreRows";
 import { SectionHeading } from "@/components/primitives/Card";
+import { SEVERE_FFDI, compass, dangerRating, raisedByFireDanger } from "@/lib/utils/spread";
 
 export function HowScoredExplainer({ incident }: { incident: Incident }) {
   const isFire = incident.flag !== "not_a_fire";
   const coordinatorAssigned = incident.provenance === "coordinator_assigned";
   const scoreState = coordinatorAssigned ? "Coordinator" : incident.sum ? "Scored" : "Not scored";
+  const weather = incident.weather;
+  const severe = weather != null && weather.ffdi >= SEVERE_FFDI;
+  const raised = raisedByFireDanger(incident);
 
   return (
     <section className="card card--inset" style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -15,7 +19,20 @@ export function HowScoredExplainer({ incident }: { incident: Incident }) {
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-3)" }}>
         <StepTile step={1} title="Fire or not a fire" result={isFire ? "Fire" : "Not a fire"} ok={isFire} />
         <StepTile step={2} title="Severity score" result={scoreState} ok={scoreState === "Scored"} />
+        <StepTile step={3} title="Fire weather" result={weather ? (raised ? "+1 level" : "No change") : "No data"} ok={weather != null} />
       </ol>
+
+      {weather ? (
+        <p style={{ margin: 0, font: "400 var(--text-sm)/var(--lh-body) var(--font-plex-sans)", color: "var(--fg-2)" }}>
+          Fire danger <strong>{dangerRating(weather.ffdi)}</strong> (FFDI {weather.ffdi}): {Math.round(weather.temperatureC)}°C,{" "}
+          {Math.round(weather.humidityPct)}% humidity, wind {Math.round(weather.windKmh)} km/h from {compass(weather.windFromDeg)}.{" "}
+          {raised
+            ? "At Severe or above the fire can outrun direct attack, so the image's score was raised one level."
+            : severe
+              ? "Severe or above adds a level to the image's score, up to 4; not applied here."
+              : "Below Severe, so the score is the image's alone."}
+        </p>
+      ) : null}
 
       <ElementScoreRows elements={incident.elements} sum={incident.sum} coordinatorAssigned={coordinatorAssigned} />
 

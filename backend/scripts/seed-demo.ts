@@ -22,7 +22,8 @@ import { v5 as uuidv5 } from 'uuid';
 import '../src/utils/load-env.ts';
 import { buildObjectKey, deleteImage, listObjectKeys, uploadImage } from '../src/storage/cos.service.ts';
 import { assessSeverity, type IndicatorReadings } from '../src/pipeline/assess-severity.ts';
-import type { DispatchState, SourceType } from '../src/metadata/metadata.types.ts';
+import { forestFireDangerIndex } from '../src/pipeline/fire-weather.ts';
+import type { DispatchState, FireWeather, SourceType } from '../src/metadata/metadata.types.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const IMAGES_DIR = join(HERE, 'demo-images');
@@ -50,7 +51,14 @@ interface Scenario {
     confirm?: string; // coordinator confirmed the AI's tag from manual review
     discard?: string; // coordinator discarded it as not a fire (-> Archive)
     dispatch?: [DispatchState, string][];
+    weather?: Conditions; // defaults to DEMO_DAY
 }
+
+// Fixed instead of looked up (src/pipeline/fire-weather.ts), so runs match: a Very high
+// north-westerly day, hotter and drier out west where fire danger reaches Severe and above.
+type Conditions = { temperatureC: number; humidityPct: number; windKmh: number; windFromDeg: number };
+const DEMO_DAY: Conditions = { temperatureC: 30, humidityPct: 20, windKmh: 35, windFromDeg: 315 };
+const HOT_WEST: Conditions = { temperatureC: 36, humidityPct: 10, windKmh: 45, windFromDeg: 300 };
 
 const r = (
     smokeDensity: IndicatorReadings['smokeDensity'],
@@ -77,7 +85,7 @@ const SCENARIOS: Scenario[] = [
         dispatch: [['live', `${OCT1}T07:10`]],
     },
     {
-        name: 'grampians', place: 'Halls Gap', lat: -37.137, lon: 142.519,
+        name: 'grampians', place: 'Halls Gap', lat: -37.137, lon: 142.519, weather: HOT_WEST,
         shots: [{ file: 'flamevision_030889.jpg', source: 'drone', at: `${OCT1}T09:14`, confidence: 0.88, readings: r('dense_dark', 'visible_high_flames_and_embers', 'dense_vegetation', 'moderate_infrastructure') }],
     },
     {
@@ -112,7 +120,7 @@ const SCENARIOS: Scenario[] = [
         shots: [{ file: 'dfire_017092.jpg', source: 'citizen', at: `${OCT1}T14:22`, confidence: 0.9, readings: r('moderate', 'no_visible_flame', 'sparse_vegetation', 'no_infrastructure') }],
     },
     {
-        name: 'wyperfeld', place: 'Yaapeet', lat: -35.6, lon: 142.0,
+        name: 'wyperfeld', place: 'Yaapeet', lat: -35.6, lon: 142.0, weather: HOT_WEST,
         shots: [{ file: 'dfire_015857.jpg', source: 'citizen', at: `${OCT1}T12:47`, confidence: 0.85, readings: r('moderate', 'no_visible_flame', 'sparse_vegetation', 'sparse_infrastructure') }],
     },
     // ---- Manual review queue (confidence at or below 0.75), 1 October ----
@@ -201,7 +209,10 @@ function build() {
             const timestamp = iso(shot.at);
             const bytes = readFileSync(join(IMAGES_DIR, shot.file));
             const c = shot.confidence; // flame visibility is the weakest reading, the others a little higher
+            const w = s.weather ?? DEMO_DAY;
+            const weather: FireWeather = { observedAt: timestamp, ...w, ffdi: forestFireDangerIndex(w.temperatureC, w.humidityPct, w.windKmh) };
             const assessed = assessSeverity({
+                weather,
                 classificationLabel: 'fire', // same as the live pipeline: no fire/non-fire model yet
                 indicators: shot.readings,
                 confidences: { flameVisibility: c, smokeDensity: clamp(c + 0.07), infrastructureImpact: clamp(c + 0.09), vegetationImpact: clamp(c + 0.12) },
@@ -235,6 +246,7 @@ function build() {
                 ingestion_error: null,
                 content_hash: createHash('md5').update(bytes).digest('hex'),
                 place_name: s.place,
+                weather,
             };
         });
 

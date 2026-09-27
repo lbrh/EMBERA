@@ -152,6 +152,7 @@ export function normalizeIncident(
     extinguishedNote: dispatch === "extinguished" && dispatchBy ? "Crew reported the fire out" : null,
     extinguishedBy: dispatch === "extinguished" ? dispatchBy : null,
     extinguishedAtIso: dispatch === "extinguished" ? dispatchAt : null,
+    weather: record.weather ?? null,
 
     backend: {
       imageId: record.imageId,

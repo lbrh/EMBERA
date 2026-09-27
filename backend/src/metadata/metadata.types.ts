@@ -48,6 +48,18 @@ export interface ImageMetadata {
     contentHash: string | null;
     // Locality at the image's coordinates ("Kinglake"), looked up after ingest; null until then.
     placeName: string | null;
+    // Weather and fire danger at the image's coordinates, looked up after ingest; null until then
+    // (or if the weather service was unreachable).
+    weather: FireWeather | null;
+}
+
+export interface FireWeather {
+    observedAt: string;
+    temperatureC: number;
+    humidityPct: number;
+    windKmh: number;
+    windFromDeg: number; // meteorological: the direction the wind blows FROM
+    ffdi: number; // McArthur Forest Fire Danger Index, see pipeline/fire-weather.ts
 }
 
 // Read shape for the incident queries: an image plus its incident's dispatch state

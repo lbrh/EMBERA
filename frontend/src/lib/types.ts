@@ -85,6 +85,18 @@ export interface ApiIncidentRecord {
   /** Who set the current dispatch state, and when (incident reads only). */
   dispatchUpdatedBy?: string | null;
   dispatchUpdatedAt?: string | null;
+  /** Weather and fire danger at the coordinates, looked up after ingest; null until then. */
+  weather?: FireWeather | null;
+}
+
+/** Mirrors backend FireWeather (backend/src/metadata/metadata.types.ts). */
+export interface FireWeather {
+  observedAt: string;
+  temperatureC: number;
+  humidityPct: number;
+  windKmh: number;
+  windFromDeg: number; // the direction the wind blows FROM
+  ffdi: number; // McArthur Forest Fire Danger Index
 }
 
 /** archived = an extinguished fire the coordinator has filed away (Resolved -> Archive). */
@@ -223,4 +235,6 @@ export interface Incident {
 
   /** Server-side values of the coordinator-editable fields, sent back by Undo (real API). */
   backend: BackendReviewState;
+  /** Weather at the newest image; drives the spread envelope on the map. Absent in mock data. */
+  weather?: FireWeather | null;
 }
