@@ -4,9 +4,11 @@ import { SeverityDot } from "@/components/primitives/SeverityDot";
 import { StatusFlagChip } from "@/components/primitives/StatusFlagChip";
 import { SourceChip } from "@/components/primitives/SourceChip";
 import { ConfidenceMeter } from "@/components/primitives/ConfidenceMeter";
+import { raisedByFireDanger } from "@/lib/utils/spread";
 
 const PROVENANCE_TEXT: Record<Incident["provenance"], (i: Incident) => string> = {
-  ai_classified: (i) => `Automated assessment. Scored ${i.sum ?? "–"} of 16, severity ${i.band} of 4.`,
+  ai_classified: (i) =>
+    `Automated assessment. Scored ${i.sum ?? "–"} of 16, severity ${i.band} of 4${raisedByFireDanger(i) ? " after fire danger" : ""}.`,
   ai_confirmed_by_coordinator: (i) => `AI provisional tag confirmed by a coordinator. Scored ${i.sum ?? "–"} of 16.`,
   coordinator_assigned: () => "Assigned manually by a coordinator, not an AI classification.",
   coordinator_override: (i) => `Coordinator override. The model assessed level ${i.band} of 4.`,

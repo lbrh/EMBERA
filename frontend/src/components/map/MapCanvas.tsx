@@ -8,6 +8,7 @@ import { filteredIncidents, legendCounts, mapMarkers } from "@/lib/store/selecto
 import { SEVERITY } from "@/lib/constants/severity";
 import { STAGING_COORDS, distanceKm } from "@/lib/utils/geo";
 import { clusterByProximity } from "@/lib/utils/project";
+import { compass, dangerRating, spreadHours, spreadPerimeters, weatherSource } from "@/lib/utils/spread";
 import { SeverityLegend } from "@/components/map/SeverityLegend";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { dataSource } from "@/lib/data-source";
@@ -130,6 +131,21 @@ function reviewIcon(incident: Incident): L.DivIcon {
   });
 }
 
+function spreadTooltip(incident: Incident): string {
+  const w = incident.weather!;
+  // one entry per hour, collapsed while the wind holds: "NW 35 → SW 30 km/h"
+  const winds = spreadHours(w)
+    .map((h) => `${compass(h.windFromDeg)} ${Math.round(h.windKmh)}`)
+    .filter((wind, i, all) => wind !== all[i - 1]);
+  return (
+    `<strong>Indicative spread if unchecked</strong> · 1, 2 and 3 h<br>` +
+    `FFDI ${w.ffdi} (legacy ${dangerRating(w.ffdi)}) · wind ${winds.join(" → ")} km/h` +
+    `${winds.length > 1 ? " (forecast change)" : ""}<br>` +
+    `Now: ${escapeHtml(weatherSource(w))}<br>` +
+    `Rough estimate, not a forecast: no ember spotting or slope`
+  );
+}
+
 const extinguishedIcon = () =>
   L.divIcon({
     className: "fori-marker fori-marker-out",
@@ -159,6 +175,7 @@ export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
+  const spreadLayerRef = useRef<L.LayerGroup | null>(null);
   const overlayLayerRef = useRef<L.LayerGroup | null>(null);
   const focusLayerRef = useRef<L.LayerGroup | null>(null);
   /** incident id -> the marker currently representing it (its own pin, or its cluster). */
@@ -192,6 +209,7 @@ export function MapCanvas() {
     }
 
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: MAX_ZOOM }).addTo(map);
+    spreadLayerRef.current = L.layerGroup().addTo(map);
     overlayLayerRef.current = L.layerGroup().addTo(map);
     markerLayerRef.current = L.layerGroup().addTo(map);
     focusLayerRef.current = L.layerGroup().addTo(map);
@@ -216,6 +234,7 @@ export function MapCanvas() {
       map.remove();
       mapRef.current = null;
       markerLayerRef.current = null;
+      spreadLayerRef.current = null;
       overlayLayerRef.current = null;
       focusLayerRef.current = null;
       markerByIdRef.current = new Map();
@@ -330,6 +349,23 @@ export function MapCanvas() {
     applyHover(markerById, useIncidentStore.getState().mapHoverId);
     return hideCard;
   }, [leafletZoom, incidents, order, mapFilter, newIncidentId, router, setMapHoverId]);
+
+  // Spread envelopes for open fires with weather: where each could reach in 1-3 h, following the wind.
+  useEffect(() => {
+    const layer = spreadLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const incident of filteredIncidents(incidents, order, mapFilter)) {
+      if (incident.dispatch === "extinguished" || !incident.weather) continue;
+      const rings = spreadPerimeters(incident.coords, incident.weather, incident.elements.vegetation);
+      // outermost first, so the inner (more certain) rings sit on top
+      rings?.reverse().forEach((ring, i) => {
+        L.polygon(ring, { className: `fori-spread fori-spread--${incident.band}`, fillOpacity: 0.12 + 0.08 * i })
+          .bindTooltip(spreadTooltip(incident), { direction: "top", sticky: true, className: "fori-tooltip" })
+          .addTo(layer);
+      });
+    }
+  }, [incidents, order, mapFilter]);
 
   // Pending grouping suggestion: a dashed ring around its members that opens the proposal card.
   useEffect(() => {

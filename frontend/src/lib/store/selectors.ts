@@ -1,5 +1,6 @@
 import type { DispatchState, Incident, SeverityBand } from "@/lib/types";
 import type { MapFilter } from "@/lib/store/useIncidentStore";
+import { distanceKm } from "@/lib/utils/geo";
 
 function byIds(incidents: Record<string, Incident>, order: string[]): Incident[] {
   return order.map((id) => incidents[id]).filter(Boolean);
@@ -86,6 +87,27 @@ export function nearby(
 ): Incident[] {
   return rankedAwaiting(incidents, order)
     .filter((i) => i.id !== currentId)
+    .slice(0, limit);
+}
+
+const OPEN: DispatchState[] = ["awaiting", "live", "unranked"];
+
+/** Open incidents within `maxKm` of this one, nearest first: the ones a coordinator might merge
+ * in as reports of the same fire (the backend only merges open incidents). */
+export function mergeCandidates(
+  incidents: Record<string, Incident>,
+  order: string[],
+  currentId: string,
+  maxKm = 15,
+  limit = 4
+): { incident: Incident; km: number }[] {
+  const current = incidents[currentId];
+  if (!current) return [];
+  return byIds(incidents, order)
+    .filter((i) => i.id !== currentId && OPEN.includes(i.dispatch) && i.flag !== "not_a_fire")
+    .map((incident) => ({ incident, km: distanceKm(current.coords, incident.coords) }))
+    .filter((c) => c.km <= maxKm)
+    .sort((a, b) => a.km - b.km)
     .slice(0, limit);
 }
 

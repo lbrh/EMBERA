@@ -120,6 +120,10 @@ interface IncidentStoreState {
   archiveIncident: (id: string) => Promise<void>;
   sendToManualReview: (id: string) => Promise<void>;
   restoreFromArchive: (id: string) => Promise<void>;
+  /** Folds `sourceId` into `targetId` (reports of the same fire). Resolves true on success. */
+  mergeIncidents: (sourceId: string, targetId: string) => Promise<boolean>;
+  /** Moves one image of `incidentId` into a new incident; resolves to its id, or null on failure. */
+  splitImage: (incidentId: string, imageId: string) => Promise<string | null>;
   confirmGrouping: () => Promise<void>;
   keepGroupSeparate: () => Promise<void>;
   loadDecisionLog: (id: string) => Promise<void>;
@@ -812,12 +816,15 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
         return; // keep what's shown; the next poll tries again
       }
       const added = list.filter((i) => !get().incidents[i.id]);
+      // an incident the server no longer has was merged into another one
+      const current = new Set(list.map((i) => i.id));
       set((s) => {
-        const incidents = { ...s.incidents };
+        const incidents: Record<string, Incident> = {};
+        for (const id of Object.keys(s.incidents)) if (current.has(id) || inFlight.has(id)) incidents[id] = s.incidents[id];
         for (const incident of list) {
           if (!inFlight.has(incident.id)) incidents[incident.id] = incident;
         }
-        return { incidents, order: [...added.map((i) => i.id), ...s.order] };
+        return { incidents, order: [...added.map((i) => i.id), ...s.order.filter((id) => id in incidents)] };
       });
       preloadImages(added.map((i) => dataSource.getImagePreviewUrl(i.file, 240)));
     },
@@ -854,6 +861,47 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
       } catch {
         // keep whatever is already shown; the log is informational
       }
+    },
+
+    mergeIncidents: async (sourceId, targetId) => {
+      const [source, target] = [get().incidents[sourceId], get().incidents[targetId]];
+      try {
+        await dataSource.mergeIncidents(sourceId, targetId);
+      } catch (err) {
+        pushToast({ title: "Couldn't merge", body: err instanceof Error ? err.message : "The request failed.", severityBand: 0, cta: "dismiss" });
+        return false;
+      }
+      pushLog(targetId, `Merged in ${source?.ref ?? "an incident"}`);
+      pushToast({
+        title: `Merged · ${source?.ref ?? ""} into ${target?.ref ?? ""}`,
+        body: "Its images, crews, comments and history are now part of this incident.",
+        severityBand: target?.band ?? 0,
+        cta: "dismiss",
+      });
+      await get().refresh();
+      await get().loadDecisionLog(targetId);
+      return true;
+    },
+
+    splitImage: async (incidentId, imageId) => {
+      let newId: string;
+      try {
+        newId = await dataSource.splitImage(imageId);
+      } catch (err) {
+        pushToast({ title: "Couldn't split", body: err instanceof Error ? err.message : "The request failed.", severityBand: 0, cta: "dismiss" });
+        return null;
+      }
+      await get().refresh();
+      const created = get().incidents[newId];
+      pushLog(incidentId, `An image was split off into ${created?.ref ?? "a new incident"}`);
+      pushToast({
+        title: `Split · now ${created?.ref ?? "a new incident"}`,
+        body: "That image is its own incident now, with its own review and dispatch.",
+        severityBand: created?.band ?? 0,
+        cta: "dismiss",
+      });
+      await get().loadDecisionLog(incidentId);
+      return newId;
     },
 
     confirmGrouping: () =>

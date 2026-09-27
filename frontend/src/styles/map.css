@@ -144,6 +144,16 @@
   fill-opacity: 0.07;
 }
 
+/* spread envelope (MapCanvas): dashed, in the incident's severity colour; opacity set per ring */
+.fori-spread {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.fori-spread--1 { stroke: var(--sev1-ring); fill: var(--sev1-fill); }
+.fori-spread--2 { stroke: var(--sev2-ring); fill: var(--sev2-fill); }
+.fori-spread--3 { stroke: var(--sev3-ring); fill: var(--sev3-fill); }
+.fori-spread--4 { stroke: var(--sev4-ring); fill: var(--sev4-fill); }
+
 .fori-tooltip.leaflet-tooltip {
   background: var(--panel);
   color: var(--fg-3);

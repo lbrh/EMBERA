@@ -164,6 +164,38 @@ coordinatorRouter.put(
     }),
 );
 
+// Merge another incident into this one: { intoIncidentId, by } on the incident being absorbed.
+coordinatorRouter.post(
+    '/incidents/:id/merge',
+    requireCaller('frontend'),
+    handle(async (req, res) => {
+        const body = (req.body ?? {}) as Record<string, unknown>;
+        if (typeof body.intoIncidentId !== 'string' || !UUID.test(body.intoIncidentId)) {
+            throw new ValidationError('intoIncidentId must be an incident id');
+        }
+        const result = await metadataRepository.mergeIncidents(req.params.id, body.intoIncidentId, parseBy(body));
+        if (!result) {
+            res.status(404).json({ error: 'incident not found' });
+            return;
+        }
+        res.json(result);
+    }),
+);
+
+// Split one image off into a new incident of its own.
+coordinatorRouter.post(
+    '/images/:id/split',
+    requireCaller('frontend'),
+    handle(async (req, res) => {
+        const result = await metadataRepository.splitImage(req.params.id, parseBy((req.body ?? {}) as Record<string, unknown>));
+        if (!result) {
+            res.status(404).json({ error: 'image not found' });
+            return;
+        }
+        res.status(201).json(result);
+    }),
+);
+
 // Decision log for an incident, newest first.
 coordinatorRouter.get(
     '/incidents/:id/decisions',

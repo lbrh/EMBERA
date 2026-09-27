@@ -1,6 +1,7 @@
 import '../utils/load-env.ts';
 import { Pool, type PoolClient } from 'pg';
 import { ValidationError } from '../pipeline/validate.ts';
+import { newIncidentId } from '../utils/ids.ts';
 import type {
     Assignment,
     AssignmentStatus,
@@ -47,6 +48,7 @@ const COLUMNS = {
     ingestionError: 'ingestion_error',
     contentHash: 'content_hash',
     placeName: 'place_name',
+    weather: 'weather',
 } as const satisfies Record<keyof ImageMetadata, string>;
 
 function fromRow(row: Record<string, unknown>): ImageMetadata {
@@ -159,6 +161,62 @@ export async function withIncidentGroupingLock<T>(fn: () => Promise<T>): Promise
     }
 }
 
+// ponytail: global try-lock (not a wait) for background jobs, so when Code Engine runs several
+// instances only one of them does the work each time.
+export async function withTryLock<T>(key: number, fn: () => Promise<T>): Promise<T | null> {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const { rows } = await client.query('SELECT pg_try_advisory_xact_lock($1) AS locked', [key]);
+        const result = rows[0].locked ? await fn() : null;
+        await client.query('COMMIT');
+        return result;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+}
+
+// The newest image of every incident still open (not extinguished or archived) that isn't a
+// dismissed non-fire: what the live weather refresh looks after.
+export async function findOpenIncidentLatestImages(): Promise<ImageMetadata[]> {
+    const { rows } = await pool.query(
+        `SELECT DISTINCT ON (i.incident_id) i.*
+         FROM images i
+         LEFT JOIN incident_dispatch d ON d.incident_id = i.incident_id
+         WHERE (d.state IS NULL OR d.state NOT IN ('extinguished', 'archived'))
+           AND i.upload_status = 'stored'
+         ORDER BY i.incident_id, i."timestamp" DESC`,
+    );
+    return rows
+        .map(fromRow)
+        .filter((image) => !['non_fire', 'extinguished'].includes(image.classificationLabelOverride ?? image.classificationLabel ?? ''));
+}
+
+// Writes refreshed weather (and the re-applied fire-danger modifier) to an image; a change in the
+// AI severity is logged so the incident's activity shows why its level moved.
+export async function applyWeatherRefresh(
+    imageId: string,
+    patch: Pick<ImageMetadata, 'weather' | 'severityScore' | 'severityExplanation'>,
+    by: string,
+): Promise<void> {
+    await inTransaction(async (client) => {
+        const { rows } = await client.query('SELECT incident_id, severity_score FROM images WHERE image_id = $1 FOR UPDATE', [imageId]);
+        if (!rows[0]) return;
+        await client.query('UPDATE images SET weather = $2, severity_score = $3, severity_explanation = $4 WHERE image_id = $1', [
+            imageId,
+            patch.weather,
+            patch.severityScore,
+            patch.severityExplanation,
+        ]);
+        if (rows[0].severity_score !== patch.severityScore) {
+            await logDecision(client, { incidentId: rows[0].incident_id, imageId, field: 'severityScore', from: rows[0].severity_score, to: patch.severityScore, by });
+        }
+    });
+}
+
 export interface BoundingBox {
     minLat: number;
     maxLat: number;
@@ -207,12 +265,15 @@ export interface LatestIncidentImage {
 }
 
 // One row per incident: its most recent image, for the auto-grouping check in
-// pipeline/group-incident.ts.
+// pipeline/group-incident.ts. Only open incidents: a fresh photo next to an extinguished fire or
+// a dismissed false alarm starts a new incident, rather than landing hidden inside a closed one.
 export async function findLatestImagePerIncident(): Promise<LatestIncidentImage[]> {
     const { rows } = await pool.query(
-        `SELECT DISTINCT ON (incident_id) incident_id, latitude, longitude, "timestamp"
-         FROM images
-         ORDER BY incident_id, "timestamp" DESC`,
+        `SELECT DISTINCT ON (i.incident_id) i.incident_id, i.latitude, i.longitude, i."timestamp"
+         FROM images i
+         LEFT JOIN incident_dispatch d ON d.incident_id = i.incident_id
+         WHERE d.state IS NULL OR d.state NOT IN ('extinguished', 'archived')
+         ORDER BY i.incident_id, i."timestamp" DESC`,
     );
     return rows.map((row) => ({
         incidentId: row.incident_id,
@@ -277,6 +338,64 @@ export async function applyCoordinatorDecision(
             await logDecision(client, { incidentId: current.incidentId, imageId, field, from: current[field], to: patch[field], by });
         }
         return fromRow(updated.rows[0]);
+    });
+}
+
+// Tables keyed by incident_id besides images and incident_dispatch: everything that belongs to an
+// incident moves with it when incidents are merged.
+const INCIDENT_TABLES = ['assignments', 'comments', 'decisions', 'support_requests'] as const;
+const CLOSED: (DispatchState | null)[] = ['extinguished', 'archived'];
+
+async function lockedDispatchState(client: PoolClient, incidentId: string): Promise<DispatchState | null> {
+    const { rows } = await client.query('SELECT state FROM incident_dispatch WHERE incident_id = $1 FOR UPDATE', [incidentId]);
+    return rows[0]?.state ?? null;
+}
+
+// A coordinator merging an incident the auto-grouping kept apart (two reports of one fire): every
+// image, crew assignment, comment, decision and support request of `sourceId` moves to `targetId`,
+// and the source stops existing. The merged incident is live if either was. Only open incidents
+// merge, so a closed fire's record isn't rewritten. Returns undefined if either doesn't exist.
+export async function mergeIncidents(sourceId: string, targetId: string, by: string): Promise<{ incidentId: string } | undefined> {
+    if (sourceId === targetId) throw new ValidationError('an incident cannot be merged into itself');
+    return inTransaction(async (client) => {
+        if (!(await incidentExists(client, sourceId)) || !(await incidentExists(client, targetId))) return undefined;
+        // lock in a fixed order so two opposite merges can't deadlock
+        const [first, second] = [sourceId, targetId].sort();
+        const states = { [first]: await lockedDispatchState(client, first), [second]: await lockedDispatchState(client, second) };
+        const [sourceState, targetState] = [states[sourceId], states[targetId]];
+        if (CLOSED.includes(sourceState) || CLOSED.includes(targetState)) {
+            throw new ConflictError('only open incidents can be merged; reopen the extinguished or archived one first');
+        }
+
+        await client.query('UPDATE images SET incident_id = $2 WHERE incident_id = $1', [sourceId, targetId]);
+        for (const table of INCIDENT_TABLES) {
+            await client.query(`UPDATE ${table} SET incident_id = $2 WHERE incident_id = $1`, [sourceId, targetId]);
+        }
+        await client.query('DELETE FROM incident_dispatch WHERE incident_id = $1', [sourceId]);
+        if (sourceState === 'live' && targetState !== 'live') await applyDispatchState(client, targetId, 'live', by);
+        await logDecision(client, { incidentId: targetId, imageId: null, field: 'mergedFrom', from: null, to: sourceId, by });
+        return { incidentId: targetId };
+    });
+}
+
+// The reverse, one image at a time: a photo the auto-grouping put in the wrong incident becomes
+// its own new incident, taking its own review/override history with it. Crews, comments and the
+// rest of the history stay with the incident they were about. Returns undefined if no such image.
+export async function splitImage(imageId: string, by: string): Promise<{ incidentId: string; fromIncidentId: string } | undefined> {
+    return inTransaction(async (client) => {
+        const { rows } = await client.query('SELECT incident_id FROM images WHERE image_id = $1 FOR UPDATE', [imageId]);
+        if (!rows[0]) return undefined;
+        const fromIncidentId: string = rows[0].incident_id;
+        await lockedDispatchState(client, fromIncidentId);
+        const { rows: count } = await client.query('SELECT count(*)::int AS n FROM images WHERE incident_id = $1', [fromIncidentId]);
+        if (count[0].n < 2) throw new ConflictError('this is the only image in its incident, so there is nothing to split it from');
+
+        const incidentId = newIncidentId();
+        await client.query('UPDATE images SET incident_id = $2 WHERE image_id = $1', [imageId, incidentId]);
+        await client.query('UPDATE decisions SET incident_id = $2 WHERE image_id = $1', [imageId, incidentId]);
+        await logDecision(client, { incidentId: fromIncidentId, imageId: null, field: 'splitTo', from: null, to: incidentId, by });
+        await logDecision(client, { incidentId, imageId, field: 'splitFrom', from: null, to: fromIncidentId, by });
+        return { incidentId, fromIncidentId };
     });
 }
 
