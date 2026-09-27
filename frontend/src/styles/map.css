@@ -91,6 +91,11 @@
   animation: pulseRing 1.2s ease-out 3;
 }
 
+/* Same pulse, for "Locate on map" from an incident's detail page. */
+.fori-marker.is-located .fori-dot {
+  animation: pulseRing 1.2s ease-out 3;
+}
+
 .fori-cluster {
   width: 100%;
   height: 100%;

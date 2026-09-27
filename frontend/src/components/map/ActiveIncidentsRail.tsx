@@ -59,7 +59,7 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
             <p className="caption rail-head__caption">
               {alertsPanelOpen
                 ? "System suggestions that need your call. Incidents are hidden."
-                : "Ranked by severity, then distance from staging."}
+                : "Ranked by severity."}
             </p>
           </div>
           <Button

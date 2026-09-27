@@ -128,7 +128,6 @@ export default function IncidentDetailPage() {
               rows={[
                 { label: "Location", value: incident.place },
                 { label: "Captured", value: relativeTime(incident.capturedAtIso, tick) },
-                { label: "Distance", value: `${incident.distanceKm.toFixed(1)} km from staging` },
                 { label: "Class", value: classificationLabel },
                 { label: "Priority", value: priorityLabel },
                 { label: "Group", value: incident.groupId ?? "None", mono: !!incident.groupId },

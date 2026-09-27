@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { resolvedList } from "@/lib/store/selectors";
-import { SeverityDot } from "@/components/primitives/SeverityDot";
-import { SeverityChip } from "@/components/primitives/SeverityChip";
-import { SOURCE_META } from "@/components/primitives/SourceChip";
-import { Button } from "@/components/primitives/Button";
+import { SearchFilterBar } from "@/components/primitives/SearchFilterBar";
 import { PageHeader } from "@/components/chrome/PageHeader";
-import { formatClock } from "@/lib/utils/time";
+import { ResolvedRow } from "@/components/resolved/ResolvedRow";
+import { EMPTY_FILTERS, matchesFilters, matchesSearch } from "@/lib/utils/incidentFilters";
 
 // one grid for the whole table (rows are subgrids, see .data-table), so columns line up; below
 // 1024px each row is a card and the dt-* cells carry their own labels (layout.css)
@@ -17,21 +15,41 @@ const GRID = "auto minmax(160px, 1.2fr) auto auto minmax(180px, 1.5fr) minmax(14
 export default function ResolvedPage() {
   const incidents = useIncidentStore((s) => s.incidents);
   const order = useIncidentStore((s) => s.order);
-  const reopenIncident = useIncidentStore((s) => s.reopenIncident);
-  const archiveIncident = useIncidentStore((s) => s.archiveIncident);
 
-  const list = resolvedList(incidents, order);
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+
+  const fullList = resolvedList(incidents, order);
+  const list = useMemo(
+    () =>
+      fullList.filter(
+        (i) => matchesSearch(i, search) && matchesFilters(i, filters, "extinguishedAtIso", "extinguishedBy")
+      ),
+    [fullList, search, filters]
+  );
+  const isFiltering = search.trim().length > 0 || fullList.length !== list.length;
 
   return (
     <div className="page">
       <PageHeader
         title="Resolved: extinguished"
         lede="Fires a dispatched crew has reported out. They leave the dispatch order, can be reopened if a later image shows re-ignition, and can be archived once they no longer need watching."
-        stat={`${list.length} resolved this shift`}
+        stat={isFiltering ? `${list.length} of ${fullList.length} resolved this shift` : `${fullList.length} resolved this shift`}
         statTone="ok"
       />
 
-      <div className="card data-table" role="table" aria-label="Resolved incidents" style={{ marginTop: "var(--space-5)", gridTemplateColumns: GRID }}>
+      <div style={{ marginTop: "var(--space-5)" }}>
+        <SearchFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          filters={filters}
+          onFiltersChange={setFilters}
+          dateLabel="Extinguished"
+          decidedByLabel="Reported by"
+        />
+      </div>
+
+      <div className="card data-table" role="table" aria-label="Resolved incidents" style={{ marginTop: "var(--space-4)", gridTemplateColumns: GRID }}>
         <div role="row" className="caption data-table__row data-table__head">
           <span role="columnheader">Incident</span>
           <span role="columnheader">Location</span>
@@ -44,53 +62,12 @@ export default function ResolvedPage() {
 
         {list.length === 0 ? (
           <p className="caption" style={{ gridColumn: "1 / -1", padding: "var(--space-7) var(--space-5)", fontSize: "var(--text-sm)" }}>
-            Nothing resolved yet. Dispatch a crew, then mark the incident extinguished from the
-            dispatch order or its detail screen when the crew reports it out.
+            {fullList.length === 0
+              ? "Nothing resolved yet. Dispatch a crew, then mark the incident extinguished from the dispatch order or its detail screen when the crew reports it out."
+              : "No resolved incidents match your search or filters."}
           </p>
         ) : (
-          list.map((incident) => (
-            <div key={incident.id} role="row" className="data-table__row">
-              <div role="cell" className="dt-id">
-                <Link
-                  href={`/incident/${incident.id}`}
-                  className="btn btn--link data"
-                  style={{ fontFamily: "var(--font-plex-mono)", fontSize: "var(--text-xs)" }}
-                >
-                  {incident.ref}
-                </Link>
-              </div>
-              <div role="cell" className="dt-main" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={{ font: "600 var(--text-sm)/1.35 var(--font-plex-sans)", color: "var(--fg)" }}>{incident.place}</span>
-                <span className="data" style={{ font: "400 var(--text-2xs)/1 var(--font-plex-mono)", color: "var(--muted)" }}>
-                  {incident.coords.lat.toFixed(2)}, {incident.coords.lng.toFixed(2)} · {SOURCE_META[incident.source].abbr}
-                </span>
-              </div>
-              <div role="cell" className="dt-field" data-label="Peak severity" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", opacity: 0.8 }}>
-                <SeverityDot band={incident.band} size={24} />
-                <SeverityChip band={incident.band} />
-              </div>
-              <span role="cell" className="dt-field" data-label="Dispatched" style={{ font: "400 var(--text-sm)/1.4 var(--font-plex-sans)", color: "var(--fg-2)" }}>
-                This shift
-              </span>
-              <span role="cell" className="dt-field dt-field--wide" data-label="Extinguished" style={{ font: "400 var(--text-sm)/1.5 var(--font-plex-sans)", color: "var(--fg-2)" }}>
-                <span className="data" style={{ fontFamily: "var(--font-plex-mono)", fontSize: "var(--text-xs)" }}>
-                  {incident.extinguishedAtIso ? `${formatClock(incident.extinguishedAtIso)} AEST` : "–"}
-                </span>
-                {incident.extinguishedNote ? `. ${incident.extinguishedNote}` : ""}
-              </span>
-              <span role="cell" className="dt-field" data-label="Reported by" style={{ font: "500 var(--text-sm)/1.35 var(--font-plex-sans)", color: "var(--fg-2)" }}>
-                {incident.extinguishedBy ?? "–"}
-              </span>
-              <div role="cell" className="dt-actions" style={{ justifySelf: "end", display: "flex", gap: "var(--space-2)" }}>
-                <Button variant="pending" small ack onClick={() => reopenIncident(incident.id)}>
-                  Reopen
-                </Button>
-                <Button variant="secondary" small ack onClick={() => archiveIncident(incident.id)}>
-                  Archive
-                </Button>
-              </div>
-            </div>
-          ))
+          list.map((incident) => <ResolvedRow key={incident.id} incident={incident} />)
         )}
       </div>
     </div>

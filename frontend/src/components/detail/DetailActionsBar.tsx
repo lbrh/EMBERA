@@ -5,16 +5,35 @@ import type { Incident } from "@/lib/types";
 import { Button } from "@/components/primitives/Button";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 
+// Close enough to see the pin on its own (tier 3 / "site" — see MapCanvas's tierFor), without
+// forcing a max zoom that'd hide the tiles around it.
+const LOCATE_ZOOM = 14;
+
 export function DetailActionsBar({ incident }: { incident: Incident }) {
   const router = useRouter();
   const openCrewPicker = useIncidentStore((s) => s.openCrewPicker);
   const cancelDispatch = useIncidentStore((s) => s.cancelDispatch);
   const sendToManualReview = useIncidentStore((s) => s.sendToManualReview);
   const archiveIncident = useIncidentStore((s) => s.archiveIncident);
+  const setMapView = useIncidentStore((s) => s.setMapView);
+  const setLocatedIncidentId = useIncidentStore((s) => s.setLocatedIncidentId);
+  const setMapFilter = useIncidentStore((s) => s.setMapFilter);
 
   const isFlagged = incident.flag === "flagged_review";
   const isLive = incident.dispatch === "live";
   const isExtinguished = incident.dispatch === "extinguished";
+  // Only awaiting/live incidents are guaranteed a marker on the map (mapMarkers excludes
+  // everything else), so this is scoped to incidents that are actually on the dispatch order.
+  const isOnDispatchOrder = incident.dispatch === "awaiting" || isLive;
+
+  function locateOnMap() {
+    setMapFilter("all");
+    setMapView({ center: [incident.coords.lat, incident.coords.lng], zoom: LOCATE_ZOOM });
+    setLocatedIncidentId(incident.id);
+    router.push("/");
+  }
+
+  // one slot walks the lifecycle: dispatch -> (live, no primary action) -> archive
   // one slot walks the lifecycle: dispatch -> (the crew marks it extinguished) -> archive
   const primary = isLive
     ? null
@@ -48,6 +67,11 @@ export function DetailActionsBar({ incident }: { incident: Incident }) {
       <Button variant="secondary" onClick={() => router.push("/dispatch")}>
         View in dispatch order
       </Button>
+      {isOnDispatchOrder ? (
+        <Button variant="secondary" onClick={locateOnMap}>
+          Locate on map
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function NearbyStrip({ currentId }: { currentId: string }) {
                 {i.place}
               </span>
               <span className="data" style={{ font: "400 var(--text-2xs)/1 var(--font-plex-mono)", color: "var(--muted)" }}>
-                {i.ref} · {i.distanceKm.toFixed(1)} km from staging
+                {i.ref}
               </span>
             </span>
           </button>

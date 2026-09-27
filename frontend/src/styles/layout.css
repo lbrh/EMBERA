@@ -395,7 +395,7 @@
 
 .dispatch-grid {
   display: grid;
-  grid-template-columns: 44px 104px minmax(180px, 1fr) minmax(220px, 1.5fr) 64px 72px 136px;
+  grid-template-columns: 44px 104px minmax(180px, 1fr) minmax(220px, 1.5fr) 64px 136px;
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-4) var(--space-5);
@@ -405,7 +405,7 @@
   padding-block: 10px;
 }
 
-/* Confidence and distance are two table columns on desktop, one line of figures on a card. */
+/* Confidence is a table column on desktop, inline with the row's other figures on a card. */
 .dr-metrics {
   display: contents;
 }

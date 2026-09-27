@@ -1,7 +1,6 @@
 "use client";
 
 import type {ReactNode} from "react";
-import {useRouter} from "next/navigation";
 import type {Incident, SeverityBand} from "@/lib/types";
 import {CONFIDENCE_THRESHOLD, SEVERITY, SEVERITY_ORDER, bandFromSum} from "@/lib/constants/severity";
 import {HatchBanner} from "@/components/primitives/HatchBanner";
@@ -24,7 +23,6 @@ const HEADLINE: Record<string, string> = {
 };
 
 export function ReviewPane({incident}: { incident: Incident }) {
-    const router = useRouter();
     const confirmReview = useIncidentStore((s) => s.confirmReview);
     const changeReview = useIncidentStore((s) => s.changeReview);
     const discardReview = useIncidentStore((s) => s.discardReview);
@@ -113,7 +111,6 @@ export function ReviewPane({incident}: { incident: Incident }) {
                                 label: "Captured",
                                 value: `${formatClock(incident.capturedAtIso)}, ${relativeTime(incident.capturedAtIso, tick)}`
                             },
-                            {label: "Distance", value: `${incident.distanceKm.toFixed(1)} km from staging`},
                             {label: "Status", value: "Flagged, held out of ranking"},
                             {label: "Class label", value: "Uncertain, not confirmed"},
                             {label: "Priority", value: "Not ranked until reviewed"},
@@ -244,6 +241,7 @@ export function ReviewPane({incident}: { incident: Incident }) {
 
                     {/* ponytail: "Request second image" removed until there's a camera/drone integration to ask */}
                     <div style={{display: "flex", gap: "var(--space-2)", flexWrap: "wrap"}}>
+                        <Button variant="secondary">Request second image</Button>
                         <Button
                             variant="secondary"
                             onClick={() => {

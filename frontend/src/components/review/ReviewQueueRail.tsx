@@ -2,8 +2,8 @@
 
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { reviewQueue } from "@/lib/store/selectors";
-import { relativeTime } from "@/lib/utils/time";
 import { HatchBanner } from "@/components/primitives/HatchBanner";
+import { ReviewQueueItem } from "@/components/review/ReviewQueueItem";
 import { CONFIDENCE_THRESHOLD } from "@/lib/constants/severity";
 
 const REASON_LABEL: Record<string, string> = {
@@ -43,40 +43,15 @@ export function ReviewQueueRail() {
       </HatchBanner>
 
       <ul className="review-queue__list">
-        {queue.map((incident) => {
-          const selected = incident.id === selectedId;
-          return (
-            <li key={incident.id}>
-              <button
-                type="button"
-                className="row-btn review-queue__item"
-                aria-current={selected ? "true" : undefined}
-                onClick={() => selectReview(incident.id)}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span className="data" style={{ font: "500 var(--text-2xs)/1 var(--font-plex-mono)", color: "var(--muted)" }}>
-                    {incident.ref}
-                  </span>
-                  <span className="data" style={{ font: "700 var(--text-xs)/1 var(--font-plex-mono)", color: "var(--accent)" }}>
-                    {incident.confidence?.toFixed(2)}
-                  </span>
-                </div>
-                <span style={{ font: "600 var(--text-sm)/1.3 var(--font-plex-sans)", color: "var(--fg)" }}>{incident.place}</span>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2)" }}>
-                  <span className="caption" style={{ fontSize: 12 }}>
-                    {relativeTime(incident.capturedAtIso, tick)}
-                  </span>
-                  <span
-                    className="chip"
-                    style={{ color: "var(--accent-fg)", background: "var(--accent-soft)", borderColor: "var(--accent-border)", borderStyle: "dashed", fontWeight: 500 }}
-                  >
-                    {REASON_LABEL[incident.reviewReason ?? "below_threshold"]}
-                  </span>
-                </div>
-              </button>
-            </li>
-          );
-        })}
+        {queue.map((incident) => (
+          <ReviewQueueItem
+            key={incident.id}
+            incident={incident}
+            selected={incident.id === selectedId}
+            tick={tick}
+            onSelect={() => selectReview(incident.id)}
+          />
+        ))}
       </ul>
     </aside>
   );

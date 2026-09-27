@@ -9,22 +9,26 @@ import { Button } from "@/components/primitives/Button";
 import { relativeTime } from "@/lib/utils/time";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
+import { useRelocatedPulse } from "@/lib/hooks/useRelocatedPulse";
 import { AssignedCrews } from "@/components/dispatch/AssignedCrews";
 
 export function DispatchRow({ incident, rank }: { incident: Incident; rank: number | null }) {
   const router = useRouter();
   const tick = useIncidentStore((s) => s.clockTick);
+  const dispatchCrew = useIncidentStore((s) => s.dispatchCrew);
   const openCrewPicker = useIncidentStore((s) => s.openCrewPicker);
   const isLive = incident.dispatch === "live";
   const isNext = rank === 1;
+  const { ref, pulsing } = useRelocatedPulse<HTMLDivElement>(incident.id);
 
   return (
     <div
+      ref={ref}
       role="link"
       tabIndex={0}
       aria-label={`${rank ? `Rank ${rank}, ` : "Live, "}${incident.place}, open incident`}
       // a table row on desktop, a card below 1024px (.dispatch-row in layout.css)
-      className="row-btn dispatch-grid dispatch-row"
+      className={`row-btn dispatch-grid dispatch-row${pulsing ? " row-pulse" : ""}`}
       onClick={() => router.push(`/incident/${incident.id}`)}
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target === e.currentTarget) router.push(`/incident/${incident.id}`);
@@ -77,6 +81,9 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         </span>
       </div>
       <span className="dr-reason" style={{ font: "400 var(--text-sm)/1.5 var(--font-plex-sans)", color: "var(--fg-2)" }}>
+        {isLive
+          ? "Crew assigned. Stays live until the crew reports the fire out."
+          : incident.recommendedAction ?? "Ranked by severity."}
         {isLive ? (
           <AssignedCrews incidentId={incident.id} />
         ) : (
@@ -93,13 +100,12 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         >
           {incident.confidence?.toFixed(2) ?? "–"}
         </span>
-        <span className="data" style={{ font: "500 var(--text-sm)/1 var(--font-plex-mono)", color: "var(--fg-2)" }}>
-          {incident.distanceKm.toFixed(1)} km
-        </span>
       </div>
       <div className="dr-action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} style={{ justifySelf: "end" }}>
         {/* only crews close a fire (Crew tab); the coordinator can send more help */}
         {isLive ? (
+          <Button variant="secondary" small onClick={() => router.push(`/incident/${incident.id}`)}>
+            Open
           <Button variant="secondary" small onClick={() => openCrewPicker(incident.id)}>
             Add crew
           </Button>
