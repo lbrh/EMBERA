@@ -22,19 +22,20 @@ One row per submitted image. An incident is a group of rows sharing `incident_id
 | `severity_score` | int 1–4 | AI severity (never overwritten by a human) |
 | `severity_score_override` | int 1–4 | Coordinator override; screens show this when set |
 | `overridden_by`, `overridden_at` | text, timestamptz | Override audit |
-| `confidence_score` | 0–1 | Lowest of the four indicator confidences |
+| `confidence_score` | 0–1 | Mean of the smoke and flame confidences |
 | `severity_explanation` | text | Plain-language reason |
 | `smoke_density` | enum | See [rubric](severity-rubric.md) |
 | `flame_visibility` | enum | 〃 |
 | `vegetation_impact` | enum | Amount of vegetation (named `_impact` for history) |
 | `infrastructure_impact` | enum | Amount of infrastructure nearby (named `_impact` for symmetry) |
-| `assessment_status` | `assessed` / `unable_to_assess` / `pending_review` | AI outcome, separate from upload status |
+| `assessment_status` | `assessed` / `unable_to_assess` / `pending_review` | AI outcome, separate from upload status. `pending_review` = the AI is still assessing (shown as "AI assessing…"); if any model fails, or it is still pending 10 min after upload (assessment killed by a deploy or scale-down), the record moves to `unable_to_assess` |
 | `classification_label` | `fire` / `non_fire` / `extinguished` / `uncertain` | Lifecycle label (AI) |
 | `classification_label_override` | same values | Coordinator's label; screens use it when set. The AI label is never overwritten |
 | `priority_rank` | int | Dispatch order position; not computed yet |
 | `upload_status` | `pending` / `stored` / `failed` | Storage write outcome |
 | `ingestion_error` | text | Why a storage write failed |
 | `content_hash` | text, unique | MD5 of the bytes, for exact-duplicate detection |
+| `created_at` | timestamptz, default `now()` | When the row was written (`timestamp` is capture time). Used by the stale-assessment sweep |
 
 Indexes: `incident_id`, `(latitude, longitude)`, `priority_rank`.
 

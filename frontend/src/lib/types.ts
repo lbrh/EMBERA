@@ -63,7 +63,7 @@ export interface ApiIncidentRecord {
   overriddenBy: string | null;
   overriddenAt: string | null;
 
-  confidenceScore: number | null; // 0-1, min() across the four indicator confidences
+  confidenceScore: number | null; // 0-1, mean of the smoke and flame confidences
   severityExplanation: string | null;
 
   smokeDensity: SmokeDensity | null;
@@ -211,7 +211,8 @@ export type ReviewReason =
   | "sent_by_coordinator"
   | "restored_not_fire"
   | "restored_discarded"
-  | "no_fire_detected"; // smoke and flame both at level 1: the models saw no fire
+  | "no_fire_detected" // smoke and flame both at level 1: the models saw no fire
+  | "ai_assessing"; // pending_review: the models haven't reported back yet
 
 export type GroupState = "suggested" | "confirmed" | "kept_separate";
 

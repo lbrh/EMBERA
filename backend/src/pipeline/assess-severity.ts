@@ -138,15 +138,10 @@ export function calculateSeverityScore(indicators: IndicatorReadings): 1 | 2 | 3
     return 4;
 }
 
-export function calculateConfidenceScore(confidences: IndicatorConfidences): {
-    confidenceScore: number;
-    weakestIndicator: keyof IndicatorConfidences;
-} {
-    const entries = Object.entries(confidences) as [keyof IndicatorConfidences, number][];
-    const [weakestIndicator, confidenceScore] = entries.reduce((min, entry) =>
-        entry[1] < min[1] ? entry : min,
-    );
-    return { confidenceScore, weakestIndicator };
+// Mean of the smoke and flame confidences: they decide whether there's a fire at all. Rounded so
+// float noise (0.8 + 0.7 = 1.4999…) can't tip a score across the 0.75 threshold.
+export function calculateConfidenceScore(confidences: IndicatorConfidences): number {
+    return Math.round(((confidences.smokeDensity + confidences.flameVisibility) / 2) * 1e4) / 1e4;
 }
 
 
@@ -229,12 +224,12 @@ export function assessSeverity({
 
     const imageScore = calculateSeverityScore(indicators);
     const severityScore = applyFireDanger(imageScore, weather);
-    const { confidenceScore, weakestIndicator } = calculateConfidenceScore(confidences);
+    const confidenceScore = calculateConfidenceScore(confidences);
     const reviewNeeded = classificationLabel === 'uncertain' || needsManualReview(confidenceScore);
 
     const reviewReason =
         classificationLabel !== 'uncertain'
-            ? `lowest confidence on ${weakestIndicator} (${confidenceScore})`
+            ? `smoke/flame confidence ${confidenceScore}`
             : showsFire(indicators)
               ? 'classification uncertain'
               : 'no smoke or flame detected';

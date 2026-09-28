@@ -6,7 +6,7 @@ import { coordinatorRouter } from './src/routes/coordinator.routes.ts';
 import { requireApiKey } from './src/middleware/api-key.middleware.ts';
 import { rateLimit } from './src/middleware/rate-limit.middleware.ts';
 import { cors } from './src/middleware/cors.middleware.ts';
-import { checkDatabaseConnection } from './src/metadata/metadata.repository.ts';
+import { checkDatabaseConnection, expireStalePendingAssessments } from './src/metadata/metadata.repository.ts';
 import { logger, errorMeta } from './src/utils/logger.ts';
 import { startWeatherRefresh } from './src/pipeline/refresh-weather.ts';
 
@@ -51,6 +51,16 @@ const server = app.listen(port, () => {
 // seed's fixed weather.
 const weatherRefreshMinutes = Number(process.env.WEATHER_REFRESH_MINUTES ?? 30);
 if (weatherRefreshMinutes > 0) startWeatherRefresh(weatherRefreshMinutes);
+
+// Images whose background AI assessment was killed (deploy, scale-down) go to manual review.
+// ponytail: 10 min covers the slowest model call (undici's 5 min timeout) twice over; runs on its own
+// timer, not the weather refresh, which the demo turns off.
+const sweepStaleAssessments = () =>
+    expireStalePendingAssessments(10)
+        .then((moved) => moved && logger.info('stale assessments sent to manual review', { moved }))
+        .catch((err) => logger.error('stale assessment sweep failed', errorMeta(err)));
+void sweepStaleAssessments();
+setInterval(sweepStaleAssessments, 5 * 60_000).unref();
 
 // Code Engine sends SIGTERM on scale-down; finish in-flight requests instead of
 // dropping them mid-upload.

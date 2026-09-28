@@ -4,11 +4,13 @@ import type { DispatchState, PipelineFlag } from "@/lib/types";
 interface Props {
   flag: PipelineFlag;
   dispatch: DispatchState;
+  /** Still pending_review: the AI hasn't finished, so it isn't "flagged" yet. */
+  assessing?: boolean;
 }
 
 /** One flag per image at any time. Dispatched replaces Processed once a crew is assigned, so the
  * dispatch state never overwrites the pipeline flag. */
-export function StatusFlagChip({ flag, dispatch }: Props) {
+export function StatusFlagChip({ flag, dispatch, assessing }: Props) {
   let label: string;
   let style: CSSProperties;
 
@@ -22,7 +24,7 @@ export function StatusFlagChip({ flag, dispatch }: Props) {
     label = "Dispatched";
     style = { color: "var(--ok-fg)", background: "var(--ok-soft)", borderColor: "var(--ok-border)" };
   } else if (flag === "flagged_review") {
-    label = "Flagged for review";
+    label = assessing ? "AI assessing…" : "Flagged for review";
     style = {
       color: "var(--accent-fg)",
       background: "var(--accent-soft)",

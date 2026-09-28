@@ -21,6 +21,7 @@ const HEADLINE: Record<string, string> = {
     restored_not_fire: "Restored for re-check",
     restored_discarded: "Restored for re-check",
     no_fire_detected: "No smoke or flame detected",
+    ai_assessing: "AI is assessing this image",
 };
 
 export function ReviewPane({incident}: { incident: Incident }) {
@@ -69,7 +70,9 @@ export function ReviewPane({incident}: { incident: Incident }) {
                         <div style={{display: "flex", flexDirection: "column", gap: 4}}>
                             <h1 className="page-title">{headline}</h1>
                             <p className="caption">
-                                {incident.reviewReason === "below_threshold"
+                                {incident.reviewReason === "ai_assessing"
+                                    ? "Scoring smoke, flame, vegetation and infrastructure. This updates on its own when done."
+                                    : incident.reviewReason === "below_threshold"
                                     ? "The provisional AI tag is not applied. Awaiting your decision."
                                     : incident.reviewReason === "no_fire_detected"
                                         ? "The models rated smoke and flame both at level 1. Confirm it's a fire, or discard it."

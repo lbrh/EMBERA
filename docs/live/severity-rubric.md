@@ -55,7 +55,7 @@ Vegetation only counts when there is a fire to burn it. A green hillside with no
 ## 3. Confidence and review routing
 
 - Each indicator model returns a confidence (softmax probability of its top class).
-- `confidence_score` = the **lowest** of the four. The weakest indicator decides whether a human looks at it, and the explanation names which one.
+- `confidence_score` = the **mean of the smoke and flame** confidences (D-36). Those two decide whether there is a fire at all; vegetation and infrastructure only shape how bad it is.
 - `confidence_score` **≤ 0.75** → `assessment_status = unable_to_assess` (manual review). A score exactly at 0.75 goes to review.
 - Above 0.75 → `assessed`.
 - The 0.75 threshold is team-proposed and untested against real data (see [requirements](requirements.md) §6).
@@ -68,7 +68,7 @@ Vegetation only counts when there is a fire to burn it. A green hillside with no
 
 If routed for review, the reason is appended:
 
-> … Routed for manual review — lowest confidence on flameVisibility (0.48).
+> … Routed for manual review — smoke/flame confidence 0.48.
 
 ## 5. Classification label (fire gate)
 
