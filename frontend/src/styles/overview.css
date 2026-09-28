@@ -54,7 +54,7 @@
 }
 
 .lp-lede {
-  font: 400 var(--text-lg) / 1.5 var(--font-plex-sans);
+  font: 400 18px / 1.5 var(--font-plex-sans);
   color: var(--fg-2);
   max-width: 44ch;
 }
@@ -332,6 +332,52 @@
   background: var(--accent-soft);
   color: var(--accent-fg);
   font: 400 12px / 1.4 var(--font-plex-mono);
+}
+
+.lp-tiles--team {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.lp-tile--team {
+  min-height: 380px;
+}
+
+.lp-team-photo {
+  align-self: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+}
+
+.lp-team-name {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.lp-linkedin {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #0a66c2;
+  border-radius: 6px;
+  color: #fff;
+}
+
+.lp-linkedin svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.lp-linkedin:hover {
+  background: #004182;
 }
 
 .lp-footer {
