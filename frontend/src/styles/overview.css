@@ -1,0 +1,385 @@
+/* ---------- overview (/) ----------
+   Product-page styling after IBM's Carbon: light display type, square flat buttons, 1px rules,
+   no gradients, shadows, rounding or motion. Colours come from the theme tokens so dark mode
+   still works; the button blue is Carbon's Blue 60 in both themes. */
+
+.lp {
+  --lp-blue: var(--primary);
+  --lp-blue-hover: var(--primary-hover);
+  --lp-blue-active: var(--primary-pressed);
+  color: var(--fg);
+  background: var(--panel);
+}
+
+.lp-wrap {
+  max-width: 1312px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.lp-band {
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.lp-band--muted {
+  background: var(--surface-2);
+}
+
+.lp-band--inverse {
+  background: var(--fg);
+  color: var(--bg);
+  border-bottom: 0;
+}
+
+.lp-eyebrow {
+  font: 400 var(--text-sm) / 1.4 var(--font-plex-sans);
+  color: var(--muted);
+}
+
+.lp-display {
+  font: 300 clamp(42px, 5.2vw, 60px) / 1.12 var(--font-plex-sans);
+  letter-spacing: 0;
+  max-width: 16ch;
+}
+
+.lp-h2 {
+  font: 300 clamp(28px, 3vw, 36px) / 1.22 var(--font-plex-sans);
+  max-width: 24ch;
+}
+
+.lp-h3 {
+  font: 400 var(--text-lg) / 1.35 var(--font-plex-sans);
+}
+
+.lp-lede {
+  font: 400 var(--text-lg) / 1.5 var(--font-plex-sans);
+  color: var(--fg-2);
+  max-width: 44ch;
+}
+
+.lp-body {
+  font: 400 var(--text-sm) / 1.6 var(--font-plex-sans);
+  color: var(--fg-2);
+}
+
+.lp-band--inverse .lp-lede,
+.lp-band--inverse .lp-body {
+  color: inherit;
+}
+
+/* ---------- hero ---------- */
+
+.lp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.lp-hero__art {
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- buttons ---------- */
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: 0;
+  font: 400 var(--text-sm) / 1.3 var(--font-plex-sans);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lp-btn svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.lp-btn:focus-visible,
+.lp-tab:focus-visible,
+.lp-link:focus-visible {
+  outline: 2px solid var(--lp-blue);
+  outline-offset: 2px;
+}
+
+.lp-btn--primary {
+  background: var(--lp-blue);
+  color: #fff;
+}
+
+.lp-btn--primary:hover {
+  background: var(--lp-blue-hover);
+}
+
+.lp-btn--primary:active {
+  background: var(--lp-blue-active);
+}
+
+.lp-btn--tertiary {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+.lp-btn--tertiary:hover {
+  background: var(--lp-blue);
+  border-color: var(--lp-blue);
+  color: #fff;
+}
+
+.lp-btn--ghost-inverse {
+  border-color: currentColor;
+  color: inherit;
+  background: transparent;
+}
+
+.lp-btn--ghost-inverse:hover {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.lp-btn--sm {
+  min-height: 32px;
+  gap: var(--space-5);
+}
+
+.lp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.lp-link {
+  color: var(--accent);
+  font: 400 var(--text-sm) / 1.4 var(--font-plex-sans);
+  text-decoration: none;
+}
+
+.lp-link:hover {
+  text-decoration: underline;
+}
+
+.lp-nav-links {
+  display: flex;
+  gap: var(--space-5);
+}
+
+/* ---------- product shots ---------- */
+
+.lp-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+}
+
+.lp-shot--phone {
+  width: 300px;
+  max-width: 100%;
+}
+
+/* ---------- key figures ---------- */
+
+.lp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.lp-stat {
+  border-left: 1px solid var(--border-2);
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lp-stat__num {
+  font: 300 42px / 1.1 var(--font-plex-sans);
+}
+
+/* ---------- tabs ---------- */
+
+.lp-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-2);
+}
+
+.lp-tab {
+  flex: none;
+  min-width: 160px;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--muted);
+  font: 400 var(--text-sm) / 1.3 var(--font-plex-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lp-tab:hover {
+  color: var(--fg);
+  border-bottom-color: var(--border-7);
+}
+
+.lp-tab[aria-selected="true"] {
+  color: var(--fg);
+  font-weight: 600;
+  border-bottom-color: var(--lp-blue);
+}
+
+.lp-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--space-8);
+  padding-top: var(--space-7);
+  align-items: start;
+}
+
+.lp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lp-list > li {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+  font: 400 var(--text-sm) / 1.5 var(--font-plex-sans);
+  color: var(--fg-2);
+}
+
+.lp-pages > li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* ---------- steps and tiles ---------- */
+
+.lp-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.lp-step {
+  border-top: 1px solid var(--fg);
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* tiles share 1px rules, like a Carbon tile grid */
+.lp-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.lp-tile {
+  background: var(--panel);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 200px;
+}
+
+.lp-tag {
+  align-self: flex-start;
+  padding: 2px var(--space-2);
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+  font: 400 12px / 1.4 var(--font-plex-mono);
+}
+
+.lp-footer {
+  padding-block: var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 1055px) {
+  .lp-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-hero__art {
+    display: none;
+  }
+
+  .lp-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .lp-stats,
+  .lp-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-6);
+  }
+
+  .lp-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 671px) {
+  .lp-wrap {
+    padding: 0 var(--space-4);
+  }
+
+  .lp-band {
+    padding: var(--space-7) 0;
+  }
+
+  .lp-nav-links {
+    display: none;
+  }
+
+  .lp-btn--sm {
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+  }
+
+  .lp-grid-4,
+  .lp-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-tile {
+    min-height: 0;
+  }
+
+  .lp-tab {
+    min-width: 0;
+  }
+
+  .lp-actions .lp-btn,
+  .lp-panel .lp-btn {
+    width: 100%;
+  }
+}

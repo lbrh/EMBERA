@@ -104,9 +104,9 @@
   --acc-28: rgb(15 98 254 / 28%);
   --acc-55: rgb(15 98 254 / 55%);
 
-  /* Primary action: the one gradient in the system. White text holds ≥ 5:1 on both stops. */
-  --grad-primary: linear-gradient(135deg, #0f62fe 0%, #0043ce 100%);
-  --grad-primary-hover: linear-gradient(135deg, #0353e9 0%, #0039b3 100%);
+  /* Primary action: flat IBM Blue 60, as on IBM's own product pages. White text holds ≥ 5:1. */
+  --primary: #0f62fe;
+  --primary-hover: #0050e6;
   --primary-pressed: #002d9c;
   --on-primary: #ffffff;
   /* Pending-decision surfaces (review queue, grouping suggestions): a Blue 10 wash that fades out. */
@@ -152,14 +152,25 @@
   --shadow-xs: 0 1px 2px rgb(15 23 42 / 6%);
   --shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 4px 20px -2px rgb(15 98 254 / 8%);
   --shadow-card-hover: 0 10px 25px -5px rgb(15 98 254 / 15%), 0 8px 10px -6px rgb(15 98 254 / 10%);
-  --shadow-btn: 0 4px 14px 0 rgb(15 98 254 / 28%);
-  --shadow-btn-hover: 0 8px 20px -2px rgb(15 98 254 / 36%);
   --shadow-pop: 0 20px 48px -12px rgb(15 23 42 / 22%), 0 8px 16px -8px rgb(15 98 254 / 14%);
   --scrim: rgb(15 23 42 / 40%);
+
+  /* logo stripes, top to bottom (docs/brand/logo-options/stripe-flame-tonal.svg) */
+  --logo-1: #78a9ff;
+  --logo-2: #4589ff;
+  --logo-3: #0f62fe;
+  --logo-4: #0043ce;
+  --logo-5: #002d9c;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+
+  --logo-1: #0f62fe;
+  --logo-2: #4589ff;
+  --logo-3: #78a9ff;
+  --logo-4: #a6c8ff;
+  --logo-5: #d0e2ff;
 
   --bg: #0a0e14;
   --bg-header: rgb(10 14 20 / 86%);
@@ -243,8 +254,6 @@
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 55%);
   --shadow-card-hover: 0 14px 32px -10px rgb(0 0 0 / 65%), 0 0 0 1px rgb(120 169 255 / 16%);
-  --shadow-btn: 0 4px 14px 0 rgb(15 98 254 / 35%);
-  --shadow-btn-hover: 0 8px 22px -2px rgb(15 98 254 / 45%);
   --shadow-pop: 0 24px 60px -12px rgb(0 0 0 / 75%), 0 0 0 1px rgb(120 169 255 / 10%);
   --scrim: rgb(0 0 0 / 60%);
 }

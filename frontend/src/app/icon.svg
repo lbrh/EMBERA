@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .s1{fill:#78a9ff}.s2{fill:#4589ff}.s3{fill:#0f62fe}.s4{fill:#0043ce}.s5{fill:#002d9c}
+    @media (prefers-color-scheme: dark){.s1{fill:#0f62fe}.s3{fill:#78a9ff}.s4{fill:#a6c8ff}.s5{fill:#d0e2ff}}
+  </style>
+  <clipPath id="flame"><path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z"/></clipPath>
+  <g clip-path="url(#flame)">
+    <rect class="s1" y="3" width="32" height="2.25"/>
+    <rect class="s2" y="6.5" width="32" height="2.25"/>
+    <rect class="s2" y="10" width="32" height="2.25"/>
+    <rect class="s3" y="13.5" width="32" height="2.25"/>
+    <rect class="s3" y="17" width="32" height="2.25"/>
+    <rect class="s4" y="20.5" width="32" height="2.25"/>
+    <rect class="s4" y="24" width="32" height="2.25"/>
+    <rect class="s5" y="27.5" width="32" height="2.25"/>
+  </g>
+</svg>

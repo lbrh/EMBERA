@@ -7,7 +7,7 @@ import { TABS } from "@/lib/constants/nav";
 
 const ROUTES = TABS.map((t) => t.href);
 
-/** Alt/Option+1-7 jump to a tab, ←/→ step between tabs, ? opens the shortcut panel, Esc closes
+/** Alt/Option+1-6 jump to a tab, ←/→ step between tabs, ? opens the shortcut panel, Esc closes
  * it. Matches the redline's keyboard model (section: Geometry, spacing, motion > Focus). */
 export function useKeyboardShortcuts() {
   const router = useRouter();

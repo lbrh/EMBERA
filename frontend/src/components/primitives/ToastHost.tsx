@@ -6,7 +6,8 @@ import { useIncidentStore } from "@/lib/store/useIncidentStore";
 
 /** Fixed top right (above the tab bar on a phone, see .toast-stack), 5 s auto-clear with a visible countdown, dismiss early with the close button.
  * Non-blocking: the page underneath stays fully interactive. */
-export function ToastHost() {
+/** `links={false}` drops the "View in <coordinator screen>" link, for views without those screens. */
+export function ToastHost({ links = true }: { links?: boolean }) {
   const router = useRouter();
   const toasts = useIncidentStore((s) => s.toasts);
   const dismissToast = useIncidentStore((s) => s.dismissToast);
@@ -37,9 +38,9 @@ export function ToastHost() {
                 {toast.title}
               </span>
               {toast.body ? <span className="caption">{toast.body}</span> : null}
-              {toast.viewHref || (toast.cta === "undo" && toast.onUndo) ? (
+              {(links && toast.viewHref) || (toast.cta === "undo" && toast.onUndo) ? (
                 <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 6 }}>
-                  {toast.viewHref ? (
+                  {links && toast.viewHref ? (
                     <button
                       type="button"
                       className="btn btn--link"
@@ -86,7 +87,7 @@ export function ToastHost() {
               <div
                 style={{
                   height: "100%",
-                  background: "var(--grad-primary)",
+                  background: "var(--primary)",
                   transformOrigin: "left",
                   animation: "toastBar 5s linear forwards",
                 }}

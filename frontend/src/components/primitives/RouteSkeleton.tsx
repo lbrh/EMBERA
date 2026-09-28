@@ -138,9 +138,9 @@ function DetailSkeleton() {
 export function RouteSkeleton() {
   const path = usePathname();
   const shape =
-    path === "/" ? <MapSkeleton /> :
-    path.startsWith("/review") ? <ReviewSkeleton /> :
-    path.startsWith("/incident/") ? <DetailSkeleton /> :
+    path === "/coordinator" ? <MapSkeleton /> :
+    path.startsWith("/coordinator/review") ? <ReviewSkeleton /> :
+    path.startsWith("/coordinator/incident/") ? <DetailSkeleton /> :
     <TableSkeleton />;
   return (
     <div role="status" aria-busy="true" aria-label="Loading incident data" style={{ height: "100%" }}>

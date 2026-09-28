@@ -31,7 +31,7 @@ export function NearbyStrip({ currentId }: { currentId: string }) {
             key={i.id}
             type="button"
             className="card card--interactive"
-            onClick={() => router.push(`/incident/${i.id}`)}
+            onClick={() => router.push(`/coordinator/incident/${i.id}`)}
             style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) var(--space-4)" }}
           >
             <SeverityDot band={i.band} size={28} />

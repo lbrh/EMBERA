@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="EMBERA">
+  <clipPath id="bars"><path d="M0 3h32v2.25H0zM0 6.5h32v2.25H0zM0 10h32v2.25H0zM0 13.5h32v2.25H0zM0 17h32v2.25H0zM0 20.5h32v2.25H0zM0 24h32v2.25H0zM0 27.5h32v2.25H0z"/></clipPath>
+  <path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z" fill="#78a9ff" clip-path="url(#bars)"/>
+</svg>

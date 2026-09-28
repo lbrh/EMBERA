@@ -39,11 +39,11 @@ Goals:
 - **Dispatch crew** opens a crew picker instead of flipping the state. The picker shows each available crew's label, type (light, heavy or aerial), station and distance to the fire. Crews already on another incident are not listed. You can pick one crew or several.
 - Rows in the Live section show the assigned crews, each with a status chip (Dispatched / En route / On scene) and how long ago it changed. The existing **Mark extinguished** button is removed, because only crews close a fire. The coordinator keeps **Recall crew** and **Reopen** (for re-ignition).
 - Incident detail gets a **Crews** section while the fire is live: each crew with its status, a recall button (✕), and **Add crew**, which opens the same picker.
-- A **Crews** page (header tab, `/crews`) lists every crew by station: available, or which fire it's on and at what step, linking to the incident. Each crew has **Recall** (when out) and **Crew view**. The picker's "Every crew is out" message links here.
+- A **Crews** page (header tab, `/coordinator/crews`) lists every crew by station: available, or which fire it's on and at what step, linking to the incident. Each crew out has **Recall**. The picker's "Every crew is out" message links here.
 - Incident detail gets a live **Activity** feed: comments and decisions (later, crew status changes and reports) in one timeline, newest first, with a comment box above it.
 - **Support requests** from crews appear as a toast, as a card in the map's **Alerts** panel (Dispatch crew / Dismiss) and as a chip beside the crews on the incident. Dispatching another crew to the incident fulfils the request; a fire that stops being live dismisses what's still open.
 
-### Response crew (`/crew`, opened from the Crews page)
+### Response crew (`/crew`, its own view with its own header)
 
 - For the demo, the Crew tab shows what a crew would see. A crew switcher at the top picks which crew you are viewing as (remembered per browser). In a real product each crew would have its own login, but login is out of scope. While a crew is picked, every action from this browser is recorded as that crew (`setActor`).
 - The screen shows the crew's **current assignment**: place, severity, latest image and a directions link.
@@ -215,7 +215,7 @@ Upgrade path if 5 s ever feels slow: SSE through the proxy plus `LISTEN/NOTIFY`.
 
 | # | Question | Decision |
 |---|---|---|
-| 1 | How does a crew identify itself? | A crew view (`/crew`, reached from the **Crews** tab) with a crew switcher standing in for each crew's login. Login is out of scope. |
+| 1 | How does a crew identify itself? | A crew view (`/crew`, a separate view from the coordinator's) with a crew switcher standing in for each crew's login. Login is out of scope. |
 | 2 | Whose severity wins, the crew's or the AI's? | The newest source. On scene, the crew makes the call by marking the fire extinguished or requesting support. |
 | 3 | Latest or worst photo for incident severity? | Latest photo, as now. |
 | 4 | Polling or WebSockets? | Polling every 5 s (§9). |

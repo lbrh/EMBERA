@@ -13,7 +13,7 @@
  */
 
 // Mirrors backend/src/metadata/metadata.types.ts (the JSON the API actually returns). Keep the two in sync.
-/** crew = a photo a response crew uploads from the fire (Crew tab). */
+/** crew = a photo a response crew uploads from the fire (crew view). */
 export type SourceType = "drone" | "cctv" | "citizen" | "satellite" | "crew";
 
 export type AssessmentStatus = "assessed" | "unable_to_assess" | "pending_review";
@@ -151,6 +151,8 @@ export interface DecisionLogEntry {
 export type CrewType = "light" | "heavy" | "aerial";
 /** dispatched -> en_route -> on_scene; cleared = recalled or the fire is over (not shown on a crew). */
 export type AssignmentStatus = "dispatched" | "en_route" | "on_scene" | "cleared";
+/** A status a crew sets itself (cleared is the coordinator's or the fire's end). */
+export type CrewStep = Exclude<AssignmentStatus, "cleared">;
 
 export interface CrewAssignment {
   id: string;
@@ -169,6 +171,22 @@ export interface Crew {
 }
 
 /** A crew on scene asking for more help. crewType null = any crew. */
+/** One thing a crew did from the crew view, for its log. `undo` is absent when it can't be undone
+ * (a photo). Session only: the undo closures can't outlive the page. */
+export interface CrewLogEntry {
+  id: string;
+  crewId: string;
+  incidentId: string;
+  summary: string;
+  whenIso: string;
+  /** what the action changed: only the newest undoable entry per incident and lane can be undone */
+  lane: "status" | "incident" | "support" | "photo";
+  /** set on a severity change, so the log can offer to change it again */
+  band?: SeverityBand;
+  undo?: () => Promise<void>;
+  undoneAtIso?: string;
+}
+
 export interface SupportRequest {
   id: string;
   incidentId: string;

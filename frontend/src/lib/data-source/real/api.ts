@@ -14,6 +14,7 @@ import type {
   Incident,
   IncidentComment,
   SeverityBand,
+  CrewStep,
 } from "@/lib/types";
 import type { SubmitImagePayload } from "../mock/mockApi";
 
@@ -80,7 +81,7 @@ function notImplemented(name: string): never {
 // ponytail: sent as `by` on every decision; there's no login yet, so the backend records it unverified.
 export const COORDINATOR_NAME = "EC · Emergency Coordinator";
 
-// Who this browser is acting as: the coordinator, or the crew picked on the Crew tab. Stands in for
+// Who this browser is acting as: the coordinator, or the crew picked on the crew view. Stands in for
 // each person's own login (out of scope), so every action is recorded against the right name.
 let actor = COORDINATOR_NAME;
 export function setActor(name: string) {
@@ -298,7 +299,7 @@ export async function getCrews(): Promise<Crew[]> {
 }
 
 /** A crew moves itself along: en route, then on scene. */
-export async function setCrewStatus(assignmentId: string, status: "en_route" | "on_scene"): Promise<void> {
+export async function setCrewStatus(assignmentId: string, status: CrewStep): Promise<void> {
   await request(`/assignments/${encodeURIComponent(assignmentId)}`, jsonInit("PATCH", { status }));
 }
 

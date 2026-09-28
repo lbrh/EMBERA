@@ -247,7 +247,7 @@ export function ReviewPane({incident}: { incident: Incident }) {
                             variant="secondary"
                             onClick={() => {
                                 locateOnMap(incident.id);
-                                router.push("/");
+                                router.push("/coordinator");
                             }}
                         >
                             Locate on map

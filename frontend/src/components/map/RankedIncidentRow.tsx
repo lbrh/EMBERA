@@ -28,7 +28,7 @@ export function RankedIncidentRow({ incident }: { incident: Incident }) {
     <button
       type="button"
       className="row-btn rail-row"
-      onClick={() => router.push(`/incident/${incident.id}`)}
+      onClick={() => router.push(`/coordinator/incident/${incident.id}`)}
       // highlights this incident's marker on the map (and vice versa)
       onMouseEnter={() => setMapHoverId(incident.id)}
       onMouseLeave={() => setMapHoverId(null)}
