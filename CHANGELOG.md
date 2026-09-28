@@ -15,6 +15,7 @@ This release splits EMBERA into three views: civilians report fires, coordinator
 - **Scripts:**
   - `npm run time-ingest` times a photo from upload until it's scored, on the staging database. It won't run against prod and cleans up after itself.
   - The demo seed now sets smoke and flame to the same confidence, so each seeded image's score matches its value.
+  - The demo seed now also resets comments, crew assignments and support requests. Before, a reseed left crews stuck on incidents that no longer existed. It seeds crews en route and on scene, an open request for aerial support, a crew photo, comments, and the nearest BoM station in each image's weather.
 
 ### Frontend
 
