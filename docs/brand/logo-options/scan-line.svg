@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="EMBERA">
+  <path d="M6 11V6h5M21 6h5v5M26 21v5h-5M11 26H6v-5" fill="none" stroke="#0f62fe" stroke-width="2"/>
+  <g transform="translate(8.8 9) scale(0.45)"><clipPath id="above"><rect width="32" height="15.56"/></clipPath><clipPath id="below"><rect y="15.56" width="32" height="20"/></clipPath>
+    <path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z" fill="none" stroke="#0f62fe" stroke-width="3" clip-path="url(#above)"/>
+    <path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z" fill="#0f62fe" clip-path="url(#below)"/></g>
+  <path d="M3 16H29" stroke="#0f62fe" stroke-width="1.5"/>
+</svg>
