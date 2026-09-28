@@ -84,7 +84,7 @@ Nothing is dismissed automatically: a reviewer confirms it as a fire or discards
 
 ### Fire weather
 
-After the rubric, the weather at the image's location can raise the score by one level (FFDI 50 or above, capped at 4). The weather is re-read every 30 minutes while the incident is open, so this part of the score can go up or down; each change is logged. See [fire weather and spread](spread-backtest.md).
+After the rubric, the weather at the image's location can raise the score by one level (FFDI 50 or above, capped at 4). The weather is re-read every 10 minutes while the incident is open, so this part of the score can go up or down; each change is logged. See [fire weather and spread](spread-backtest.md).
 
 ## 6. Change history
 

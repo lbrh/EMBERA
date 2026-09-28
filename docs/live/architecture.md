@@ -52,7 +52,7 @@ Notes:
 - **Grouping** (2 km / 6 h, nearest wins, open incidents only) runs under a lock so two near-simultaneous uploads can't create two incidents. A coordinator fixes a wrong call by merging two incidents or splitting an image off (incident page).
 - **Operating region** is a placeholder bounding box for Victoria, AU (lat -39.2 to -33.98, lon 140.96 to 150.03) in `validate.ts`.
 - **Fire gate** is the smoke/flame rule, not a model: smoke or flame at 2–4 is `fire`; both at 1 is `uncertain` and goes to manual review (D-33).
-- **Fire weather** is looked up alongside classification: the nearest Bureau of Meteorology station within 40 km and 400 m of height for "now", Open-Meteo for the next 2 hours. A background job refreshes open incidents every `WEATHER_REFRESH_MINUTES` (default 30, 0 = off), at startup too, under a try-lock so one instance does it (D-34).
+- **Fire weather** is looked up alongside classification: the nearest Bureau of Meteorology station within 40 km and 400 m of height for "now", Open-Meteo for the next 2 hours. A background job refreshes open incidents every `WEATHER_REFRESH_MINUTES` (default 10, 0 = off), at startup too, under a try-lock so one instance does it (D-34).
 - **Prioritisation** (`priority_rank`) is not computed yet.
 - **External classification service** (the Sprint 1 request/response contract, `CLASSIFICATION_SERVICE_URL`) was never built and its code has been removed; the direct watsonx deployments replaced it.
 

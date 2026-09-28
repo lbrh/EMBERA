@@ -15,7 +15,7 @@ The branch makes the risk score and map weather-aware, and lets coordinators fix
 | --- | --- | --- |
 | Fire / not-a-fire rule | Smoke or flame at level 2 to 4 means fire; both at 1 goes to manual review | `assess-severity.ts` |
 | Calibrated spread rings | McArthur rate of spread × 2.5, fitted and tested on Black Summer satellite data | `spread.ts`, `spread-backtest.ts` |
-| Station wind + live refresh | Nearest Bureau of Meteorology station for current wind; open incidents re-checked every 30 minutes | `bom-stations.ts`, `refresh-weather.ts` |
+| Station wind + live refresh | Nearest Bureau of Meteorology station for current wind; open incidents re-checked every 10 minutes | `bom-stations.ts`, `refresh-weather.ts` |
 | Merge and split | Coordinators merge two incidents into one, or split an image into its own incident | `metadata.repository.ts`, `MergeIncidents.tsx` |
 
 ## Fire or not a fire
@@ -62,7 +62,7 @@ Two limits remain. Runs of 8 km or more are still about 4× short (0.22), and th
 
 ## Live weather
 
-Current wind now comes from a real Bureau of Meteorology station when one is close enough, and every open incident is re-checked every 30 minutes. The backtest showed gridded model wind runs low on bad fire days, so a measured value wins when there is one.
+Current wind now comes from a real Bureau of Meteorology station when one is close enough, and every open incident is re-checked every 10 minutes. The backtest showed gridded model wind runs low on bad fire days, so a measured value wins when there is one.
 
 **Source.** One public file, `IDV60920.xml`, holds the latest reading from every Victorian automatic weather station and updates about every 10 minutes. It needs no key, but the Bureau refuses requests without an identifying User-Agent. 98 of its 105 stations report wind.
 
@@ -76,7 +76,7 @@ A station is used only if it passes all three checks; otherwise the app falls ba
 
 The next 2 hours always come from Open-Meteo; they are what bends the spread rings. In a dry run on 27 September, 13 of 15 open incidents had a qualifying station; Bright and Eildon fell back to the model.
 
-**Refresh.** The backend refreshes open incidents every 30 minutes and once at startup, which covers a cold start after Code Engine scales to zero. A database try-lock means only one instance does the work. Each refresh:
+**Refresh.** The backend refreshes open incidents every 10 minutes and once at startup, which covers a cold start after Code Engine scales to zero. A database try-lock means only one instance does the work. Each refresh:
 
 1. Looks up weather for the incident's newest image, skipping any looked up in the last 20 minutes.
 2. Re-applies the fire-danger modifier: FFDI 50 or more adds one level to the image's score, capped at 4.
@@ -103,7 +103,7 @@ Merge asks for a second click to confirm, because it can't be fully undone: spli
 The one thing to watch: every backend that starts, including a teammate's local one, runs the weather refresh against the shared database. That replaces the demo seed's fixed wind-change weather with real weather, which can move demo severities (on a calm night Halls Gap drops from 4 to 3).
 
 - **Before a demo:** set `WEATHER_REFRESH_MINUTES=0` on the backend, then run `npm run seed:demo -- --yes` to restore the fixed weather and scores.
-- **Config:** `WEATHER_REFRESH_MINUTES` defaults to 30; 0 turns the refresh off. It is documented in `backend/.env.example`. No other new settings or secrets.
+- **Config:** `WEATHER_REFRESH_MINUTES` defaults to 10; 0 turns the refresh off. It is documented in `backend/.env.example`. No other new settings or secrets.
 - **Schema:** nothing new on this branch; `images.weather` (JSONB) was added in the earlier commit on `main`.
 - **Tests:** the new integration tests (`merge-split`, `weather-refresh`) insert throwaway rows in the shared database and delete them afterwards, like the existing ones.
 - **Reproducing the backtest:** the commands are in [spread-backtest.md](spread-backtest.md). The NASA data is about 195 MB, so it isn't committed.
