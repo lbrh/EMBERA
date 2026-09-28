@@ -215,7 +215,7 @@ function build() {
             const imageId = id('image', s.name, String(n));
             const timestamp = iso(shot.at);
             const bytes = readFileSync(join(IMAGES_DIR, shot.file));
-            const c = shot.confidence; // flame visibility is the weakest reading, the others a little higher
+            const c = shot.confidence; // smoke and flame both at c, so the score (their mean) is c
             const [now, ...next] = s.weather ?? DEMO_DAY;
             const weather: FireWeather = {
                 observedAt: timestamp,
@@ -226,7 +226,7 @@ function build() {
                 weather,
                 classificationLabel: classifyFromIndicators(shot.readings), // same as the live pipeline
                 indicators: shot.readings,
-                confidences: { flameVisibility: c, smokeDensity: clamp(c + 0.07), infrastructureImpact: clamp(c + 0.09), vegetationImpact: clamp(c + 0.12) },
+                confidences: { flameVisibility: c, smokeDensity: c, infrastructureImpact: clamp(c + 0.09), vegetationImpact: clamp(c + 0.12) },
             });
             const ext = extname(shot.file).slice(1);
             return {

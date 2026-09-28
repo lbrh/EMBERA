@@ -19,6 +19,13 @@ export default function ReportFirePage() {
   const errors = validate(form);
   const shown = (name: FieldName) => (touched[name] ? errors[name] : undefined);
   const touch = (name: FieldName) => setTouched((t) => ({ ...t, [name]: true }));
+  function clearFields() {
+    setForm(EMPTY);
+    setTouched({});
+    // the file input is uncontrolled; without this, re-picking the same photo fires no change
+    const fileInput = document.getElementById("submit-file") as HTMLInputElement | null;
+    if (fileInput) fileInput.value = "";
+  }
 
   const steps: { label: string; done: boolean; running?: boolean }[] = [
     { label: "Attach image", done: !!form.file && !errors.file },
@@ -51,6 +58,7 @@ export default function ReportFirePage() {
       });
       setLastRef(result.ref);
       setStatus("done");
+      clearFields(); // so a confirmed report can't be sent twice by accident
     } catch (err) {
       setStatus("idle");
       setError(err instanceof Error ? err.message : "Submission failed.");
@@ -395,8 +403,7 @@ export default function ReportFirePage() {
             type="button"
             className="btn btn--quiet tap-link"
             onClick={() => {
-              setForm(EMPTY);
-              setTouched({});
+              clearFields();
               setError(null);
               setStatus("idle");
             }}

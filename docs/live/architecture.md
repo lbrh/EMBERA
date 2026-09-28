@@ -43,7 +43,7 @@ flowchart TD
     RULE --> ROUTE{confidence ≤ 0.75?}
     ROUTE -- yes --> REV[unable_to_assess → manual review]
     ROUTE -- no --> OK[assessed]
-    S -- partial --> P[Store available indicators<br/>stays pending_review]
+    S -- partial --> P[Store available indicators<br/>unable_to_assess]
 ```
 
 Notes:

@@ -150,7 +150,9 @@ async function classifyAndUpdate(record: ImageMetadata, imageBuffer: Buffer): Pr
             });
             await metadataRepository.update(record.imageId, { ...result, weather });
         } else {
-            await metadataRepository.update(record.imageId, { ...readings, weather });
+            // Some models failed or aren't configured: done trying, so out of pending_review
+            // (which the UI shows as "AI assessing") and into manual review.
+            await metadataRepository.update(record.imageId, { ...readings, weather, assessmentStatus: 'unable_to_assess' });
         }
     } catch (err) {
         logger.error('failed to write indicator results', errorMeta(err));
