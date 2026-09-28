@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { logger, errorMeta } from '../utils/logger.ts';
 import type { IngestionInput } from '../metadata/metadata.types.ts';
 
-const SOURCE_TYPES = new Set(['drone', 'cctv', 'citizen', 'satellite']);
+const SOURCE_TYPES = new Set(['drone', 'cctv', 'citizen', 'satellite', 'crew']);
 
 // ponytail: placeholder region (Victoria, AU) — the addendum flags the real operating
 // bounding box as still undecided, pending client input. Swap these four numbers for
@@ -18,7 +18,7 @@ export type ValidatedIngestionInput = Required<Pick<IngestionInput, 'sourceType'
 // must be present and coordinates must fall within the operating region's bounding box.
 export function validateIngestion(input: IngestionInput): asserts input is ValidatedIngestionInput {
     if (!input.sourceType || !SOURCE_TYPES.has(input.sourceType)) {
-        throw new ValidationError('source_type is required and must be one of drone, cctv, citizen, satellite');
+        throw new ValidationError(`source_type is required and must be one of ${[...SOURCE_TYPES].join(', ')}`);
     }
     if (input.latitude === undefined || input.longitude === undefined) {
         throw new ValidationError('latitude and longitude are required');

@@ -65,6 +65,21 @@ a:focus:not(:focus-visible) {
   }
 }
 
+/* A row an action just relocated here, once it scrolls into view (see useRelocatedPulse). */
+@keyframes rowPulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--tint-2);
+  }
+}
+
+.row-pulse {
+  animation: rowPulse 1s ease-out 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

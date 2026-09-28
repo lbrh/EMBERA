@@ -46,3 +46,7 @@ test('assertReadableImage accepts a valid image and rejects a truncated one', as
     await assert.rejects(assertReadableImage(jpeg.subarray(0, jpeg.length / 2)), /corrupt or unreadable/);
     await assert.rejects(assertReadableImage(Buffer.from('not an image')), ValidationError);
 });
+
+test('accepts a photo from a response crew', () => {
+    assert.doesNotThrow(() => validateIngestion({ ...VALID, sourceType: 'crew' }));
+});

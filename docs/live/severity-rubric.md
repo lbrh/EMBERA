@@ -72,7 +72,19 @@ If routed for review, the reason is appended:
 
 ## 5. Classification label (fire gate)
 
-The requirements call for a fire / non-fire gate before scoring ([requirements](requirements.md) §3). **No gate model exists yet.** Until it does, every uploaded image is scored with `classification_label = fire`. The vegetation gating above keeps no-fire images at severity 1, but they are still shown as fires. See [decision log](../decisions/decision-log.md) D-22 and the gate accuracy proposal D-25.
+The requirements call for a fire / non-fire gate before scoring ([requirements](requirements.md) §3). No separate gate model exists, so the label comes from the smoke and flame readings (D-33):
+
+| Smoke | Flame | `classification_label` | Result |
+|---|---|---|---|
+| 2–4 | any | `fire` | Scored as normal |
+| any | 2–4 | `fire` | Scored as normal |
+| 1 | 1 | `uncertain` | Scored, then **always** routed to manual review with the reason "no smoke or flame detected", whatever the confidence |
+
+Nothing is dismissed automatically: a reviewer confirms it as a fire or discards it. The gate accuracy target (D-25) would apply to a trained gate model if one replaces this rule. `POST /images/:id/assess` still takes an explicit `classification_label` from the classifier caller.
+
+### Fire weather
+
+After the rubric, the weather at the image's location can raise the score by one level (FFDI 50 or above, capped at 4). The weather is re-read every 10 minutes while the incident is open, so this part of the score can go up or down; each change is logged. See [fire weather and spread](spread-backtest.md).
 
 ## 6. Change history
 

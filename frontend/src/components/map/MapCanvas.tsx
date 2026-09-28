@@ -8,7 +8,10 @@ import { filteredIncidents, legendCounts, mapMarkers } from "@/lib/store/selecto
 import { SEVERITY } from "@/lib/constants/severity";
 import { STAGING_COORDS, distanceKm } from "@/lib/utils/geo";
 import { clusterByProximity } from "@/lib/utils/project";
+import { compass, dangerRating, spreadHours, spreadPerimeters, weatherSource } from "@/lib/utils/spread";
 import { SeverityLegend } from "@/components/map/SeverityLegend";
+import { MapScale } from "@/components/map/MapScale";
+import { MapLayerControl } from "@/components/map/MapLayerControl";
 import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { dataSource } from "@/lib/data-source";
 import { relativeTime } from "@/lib/utils/time";
@@ -27,9 +30,40 @@ const CLUSTER_THRESHOLD_PX = { 1: 64, 2: 0, 3: 0 } as const; // screen px; 0 dis
 const MAX_ZOOM = 19;
 const INITIAL_MAX_ZOOM = 12;
 
-const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+export type BaseLayerId = "street" | "satellite";
+
+const BASE_LAYERS: Record<BaseLayerId, { url: string; attribution: string; maxZoom: number }> = {
+  street: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: MAX_ZOOM,
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS community",
+    maxZoom: MAX_ZOOM,
+  },
+};
+
+const SCALE_MAX_WIDTH_PX = 100;
+
+/** Leaflet's own Control.Scale rounding: the widest "nice" round number (1/2/3/5 x a power of
+ * ten) that still fits within maxWidthPx at the map's current projection. */
+function niceScaleNum(num: number): number {
+  const pow10 = Math.pow(10, (Math.floor(num) + "").length - 1);
+  const d = num / pow10;
+  const step = d >= 10 ? 10 : d >= 5 ? 5 : d >= 3 ? 3 : d >= 2 ? 2 : 1;
+  return pow10 * step;
+}
+
+function computeScale(map: L.Map, maxWidthPx: number): { widthPx: number; label: string } | null {
+  const y = map.getSize().y / 2;
+  const maxMeters = map.distance(map.containerPointToLatLng([0, y]), map.containerPointToLatLng([maxWidthPx, y]));
+  if (!maxMeters || !isFinite(maxMeters)) return null;
+  const meters = niceScaleNum(maxMeters);
+  const label = meters < 1000 ? `${meters} m` : `${meters / 1000} km`;
+  return { widthPx: Math.round(maxWidthPx * (meters / maxMeters)), label };
+}
 
 function tierFor(leafletZoom: number): ZoomTier {
   if (leafletZoom <= 10) return 1;
@@ -115,6 +149,36 @@ function hoverCard(incident: Incident): HTMLElement {
   return card;
 }
 
+/** The one image under review a reviewer asked to see ("Locate on map"): a dashed pending ring,
+ * never a severity colour, since it has no applied severity yet. */
+function reviewIcon(incident: Incident): L.DivIcon {
+  return L.divIcon({
+    className: "fori-marker is-new",
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    html:
+      `<div class="fori-pin">` +
+      `<div class="fori-review">?</div>` +
+      `<span class="fori-label">Under review · ${escapeHtml(incident.place)}</span>` +
+      `</div>`,
+  });
+}
+
+function spreadTooltip(incident: Incident): string {
+  const w = incident.weather!;
+  // one entry per hour, collapsed while the wind holds: "NW 35 → SW 30 km/h"
+  const winds = spreadHours(w)
+    .map((h) => `${compass(h.windFromDeg)} ${Math.round(h.windKmh)}`)
+    .filter((wind, i, all) => wind !== all[i - 1]);
+  return (
+    `<strong>Indicative spread if unchecked</strong> · 1, 2 and 3 h<br>` +
+    `FFDI ${w.ffdi} (legacy ${dangerRating(w.ffdi)}) · wind ${winds.join(" → ")} km/h` +
+    `${winds.length > 1 ? " (forecast change)" : ""}<br>` +
+    `Now: ${escapeHtml(weatherSource(w))}<br>` +
+    `Rough estimate, not a forecast: no ember spotting or slope`
+  );
+}
+
 const extinguishedIcon = () =>
   L.divIcon({
     className: "fori-marker fori-marker-out",
@@ -133,15 +197,28 @@ export function MapCanvas() {
   const setMapHoverId = useIncidentStore((s) => s.setMapHoverId);
   const setAlertsPanelOpen = useIncidentStore((s) => s.setAlertsPanelOpen);
   const newIncidentId = useIncidentStore((s) => s.newIncidentId);
+  const locatedIncidentId = useIncidentStore((s) => s.locatedIncidentId);
+  const setLocatedIncidentId = useIncidentStore((s) => s.setLocatedIncidentId);
   const group = useIncidentStore((s) => s.group);
+  const mapFocusId = useIncidentStore((s) => s.mapFocusId);
+  const clearMapFocus = useIncidentStore((s) => s.clearMapFocus);
+  const selectReview = useIncidentStore((s) => s.selectReview);
+  // shown as its own pin only while it's still under review; once decided it's an ordinary marker
+  const focus = mapFocusId ? incidents[mapFocusId] : undefined;
+  const focusUnderReview = focus?.flag === "flagged_review" ? focus : undefined;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
+  const spreadLayerRef = useRef<L.LayerGroup | null>(null);
   const overlayLayerRef = useRef<L.LayerGroup | null>(null);
+  const focusLayerRef = useRef<L.LayerGroup | null>(null);
   /** incident id -> the marker currently representing it (its own pin, or its cluster). */
   const markerByIdRef = useRef<Map<string, L.Marker>>(new Map());
   const [leafletZoom, setLeafletZoom] = useState<number | null>(null);
+  const [scale, setScale] = useState<{ widthPx: number; label: string } | null>(null);
+  const [baseLayer, setBaseLayer] = useState<BaseLayerId>("street");
 
   const counts = legendCounts(incidents, order);
 
@@ -169,19 +246,24 @@ export function MapCanvas() {
       map.fitBounds(L.latLngBounds(coords), { padding: [56, 56], maxZoom: INITIAL_MAX_ZOOM });
     }
 
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: MAX_ZOOM }).addTo(map);
+    spreadLayerRef.current = L.layerGroup().addTo(map);
     overlayLayerRef.current = L.layerGroup().addTo(map);
     markerLayerRef.current = L.layerGroup().addTo(map);
+    focusLayerRef.current = L.layerGroup().addTo(map);
 
     const syncZoom = () => setLeafletZoom(map.getZoom());
     const syncView = () => {
       const c = map.getCenter();
       setMapView({ center: [c.lat, c.lng], zoom: map.getZoom() });
     };
+    // Distance-per-pixel depends on latitude (Mercator), so the bar redraws on pan too, not just zoom.
+    const syncScale = () => setScale(computeScale(map, SCALE_MAX_WIDTH_PX));
     map.on("zoomend", syncZoom);
     map.on("moveend", syncView);
+    map.on("move zoom", syncScale);
     syncZoom();
     syncView();
+    syncScale();
 
     // The canvas is a flex child, so keep Leaflet's cached size in step with the layout.
     const resizeObserver = new ResizeObserver(() => map.invalidateSize());
@@ -193,11 +275,26 @@ export function MapCanvas() {
       map.remove();
       mapRef.current = null;
       markerLayerRef.current = null;
+      spreadLayerRef.current = null;
       overlayLayerRef.current = null;
+      focusLayerRef.current = null;
       markerByIdRef.current = new Map();
       useIncidentStore.getState().setMapHoverId(null);
     };
   }, [setMapView]);
+
+  // Base tile layer: swapped out (not restyled in place) whenever the picked layer changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const config = BASE_LAYERS[baseLayer];
+    const layer = L.tileLayer(config.url, { attribution: config.attribution, maxZoom: MAX_ZOOM, maxNativeZoom: config.maxZoom });
+    layer.addTo(map);
+    layer.bringToBack();
+    const previous = tileLayerRef.current;
+    tileLayerRef.current = layer;
+    previous?.remove();
+  }, [baseLayer]);
 
   // Incident markers: rebuilt from the store whenever the data, filter or zoom level changes.
   useEffect(() => {
@@ -267,6 +364,7 @@ export function MapCanvas() {
           .addTo(layer);
         marker.getElement()?.setAttribute("aria-label", `${label}, ${SEVERITY[incident.band as SeverityBand].label}`);
         if (incident.id === newIncidentId) marker.getElement()?.classList.add("is-new");
+        if (incident.id === locatedIncidentId) marker.getElement()?.classList.add("is-located");
         wireHover(marker, incident.id, incident);
         markerById.set(incident.id, marker);
         continue;
@@ -304,8 +402,38 @@ export function MapCanvas() {
 
     markerByIdRef.current = markerById;
     applyHover(markerById, useIncidentStore.getState().mapHoverId);
-    return hideCard;
-  }, [leafletZoom, incidents, order, mapFilter, newIncidentId, router, setMapHoverId]);
+
+    // One-shot, on a timer rather than cleared the instant it's applied: clearing it inline here
+    // would race dev StrictMode's mount-cleanup-remount and wipe the flag before the markers from
+    // the real mount exist to read it. The clear timeout itself gets cancelled by that same
+    // cleanup, so only the surviving mount's timer ever actually fires.
+    let locatedTimer: ReturnType<typeof setTimeout> | undefined;
+    if (locatedIncidentId && markerById.has(locatedIncidentId)) {
+      locatedTimer = setTimeout(() => setLocatedIncidentId(null), 4000);
+    }
+
+    return () => {
+      hideCard();
+      clearTimeout(locatedTimer);
+    };
+  }, [leafletZoom, incidents, order, mapFilter, newIncidentId, locatedIncidentId, setLocatedIncidentId, router, setMapHoverId]);
+
+  // Spread envelopes for open fires with weather: where each could reach in 1-3 h, following the wind.
+  useEffect(() => {
+    const layer = spreadLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const incident of filteredIncidents(incidents, order, mapFilter)) {
+      if (incident.dispatch === "extinguished" || !incident.weather) continue;
+      const rings = spreadPerimeters(incident.coords, incident.weather, incident.elements.vegetation);
+      // outermost first, so the inner (more certain) rings sit on top
+      rings?.reverse().forEach((ring, i) => {
+        L.polygon(ring, { className: `fori-spread fori-spread--${incident.band}`, fillOpacity: 0.12 + 0.08 * i })
+          .bindTooltip(spreadTooltip(incident), { direction: "top", sticky: true, className: "fori-tooltip" })
+          .addTo(layer);
+      });
+    }
+  }, [incidents, order, mapFilter]);
 
   // Pending grouping suggestion: a dashed ring around its members that opens the proposal card.
   useEffect(() => {
@@ -337,6 +465,24 @@ export function MapCanvas() {
       .on("click", () => setAlertsPanelOpen(true))
       .addTo(layer);
   }, [group, incidents, order, setAlertsPanelOpen]);
+
+  // "Locate on map" from Manual review: that one image's pin, which opens it back in review.
+  useEffect(() => {
+    const layer = focusLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (!focusUnderReview) return;
+    const marker = L.marker([focusUnderReview.coords.lat, focusUnderReview.coords.lng], {
+      icon: reviewIcon(focusUnderReview),
+      zIndexOffset: 2000,
+    })
+      .on("click", () => {
+        selectReview(focusUnderReview.id);
+        router.push("/review");
+      })
+      .addTo(layer);
+    marker.getElement()?.setAttribute("aria-label", `${focusUnderReview.place}, under review. Open in manual review`);
+  }, [focusUnderReview, router, selectReview]);
 
   // Hover linkage with the Active Incidents rail.
   useEffect(() => {
@@ -390,13 +536,6 @@ export function MapCanvas() {
         >
           −
         </button>
-        <span
-          className="data"
-          aria-label={`Zoom level ${leafletZoom ?? "unknown"}`}
-          style={{ minWidth: 34, textAlign: "center", font: "500 var(--text-2xs)/1 var(--font-plex-mono)", color: "var(--muted)" }}
-        >
-          Z{leafletZoom ?? "–"}
-        </span>
         <button
           type="button"
           className="icon-btn icon-btn--bare"
@@ -408,6 +547,32 @@ export function MapCanvas() {
           +
         </button>
       </div>
+
+      {scale ? <MapScale widthPx={scale.widthPx} label={scale.label} /> : null}
+
+      <div style={{ position: "absolute", right: "var(--space-4)", bottom: "var(--space-5)", zIndex: 1 }}>
+        <MapLayerControl active={baseLayer} onChange={setBaseLayer} />
+      </div>
+      {focusUnderReview ? (
+        <div className="card map-focus-bar" role="status">
+          <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <strong>{focusUnderReview.ref}</strong> · under review<span className="map-focus-bar__more">, shown only for you</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn--link btn--sm"
+            onClick={() => {
+              selectReview(focusUnderReview.id);
+              router.push("/review");
+            }}
+          >
+            Back to review
+          </button>
+          <button type="button" className="icon-btn icon-btn--bare" aria-label="Hide this image from the map" onClick={clearMapFocus}>
+            ✕
+          </button>
+        </div>
+      ) : null}
 
       <SeverityLegend counts={counts} />
     </div>

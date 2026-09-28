@@ -33,7 +33,7 @@ export default function DispatchOrderPage() {
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <h1 className="page-title">Dispatch order</h1>
-          <p className="page-lede">Severity first, then distance from staging. Every position states its own reason.</p>
+          <p className="page-lede">Ranked by severity. Every position states its own reason.</p>
         </div>
         <div className="seg" role="group" aria-label="Filter dispatch order">
           {FILTERS.map((f) => (
@@ -62,7 +62,6 @@ export default function DispatchOrderPage() {
           <span>Incident</span>
           <span>Reason</span>
           <span>Conf.</span>
-          <span>Distance</span>
           <span />
         </div>
 
@@ -79,7 +78,8 @@ export default function DispatchOrderPage() {
 
         {showLive ? (
           <section aria-label="Live">
-            <SectionBar tone="ok" title="Live" count={live.length} note="Mark extinguished when the crew reports the fire out." />
+            <SectionBar tone="ok" title="Live" count={live.length} note="Stays live until the crew reports the fire out." />
+            <SectionBar tone="ok" title="Live" count={live.length} note="Crews mark the fire extinguished (or a false alarm) from the Crew tab." />
             {live.length === 0 ? (
               <EmptyRow text="No crews out yet. Incidents move here when you dispatch a crew." />
             ) : (

@@ -20,6 +20,7 @@ const HEADLINE: Record<string, string> = {
     sent_by_coordinator: "Sent for a human check",
     restored_not_fire: "Restored for re-check",
     restored_discarded: "Restored for re-check",
+    no_fire_detected: "No smoke or flame detected",
 };
 
 export function ReviewPane({incident}: { incident: Incident }) {
@@ -27,6 +28,7 @@ export function ReviewPane({incident}: { incident: Incident }) {
     const confirmReview = useIncidentStore((s) => s.confirmReview);
     const changeReview = useIncidentStore((s) => s.changeReview);
     const discardReview = useIncidentStore((s) => s.discardReview);
+    const locateOnMap = useIncidentStore((s) => s.locateOnMap);
     const tick = useIncidentStore((s) => s.clockTick);
     const [ackedBand, ackBand] = useAck<SeverityBand>();
 
@@ -69,12 +71,16 @@ export function ReviewPane({incident}: { incident: Incident }) {
                             <p className="caption">
                                 {incident.reviewReason === "below_threshold"
                                     ? "The provisional AI tag is not applied. Awaiting your decision."
-                                    : "Routed by a coordinator. Awaiting your decision."}
+                                    : incident.reviewReason === "no_fire_detected"
+                                        ? "The models rated smoke and flame both at level 1. Confirm it's a fire, or discard it."
+                                        : "Routed by a coordinator. Awaiting your decision."}
                             </p>
                         </div>
                         {incident.confidence != null ? (
                             <ConfidenceMeter confidence={incident.confidence} size="lg"
-                                             note={`At or below the ${CONFIDENCE_THRESHOLD} threshold`}/>
+                                             note={incident.confidence <= CONFIDENCE_THRESHOLD
+                                                 ? `At or below the ${CONFIDENCE_THRESHOLD} threshold`
+                                                 : `Above the ${CONFIDENCE_THRESHOLD} threshold`}/>
                         ) : null}
                     </div>
                     <span className="data"
@@ -107,7 +113,6 @@ export function ReviewPane({incident}: { incident: Incident }) {
                                 label: "Captured",
                                 value: `${formatClock(incident.capturedAtIso)}, ${relativeTime(incident.capturedAtIso, tick)}`
                             },
-                            {label: "Distance", value: `${incident.distanceKm.toFixed(1)} km from staging`},
                             {label: "Status", value: "Flagged, held out of ranking"},
                             {label: "Class label", value: "Uncertain, not confirmed"},
                             {label: "Priority", value: "Not ranked until reviewed"},
@@ -236,9 +241,15 @@ export function ReviewPane({incident}: { incident: Incident }) {
                         </DecisionBlock>
                     </section>
 
+                    {/* ponytail: "Request second image" removed until there's a camera/drone integration to ask */}
                     <div style={{display: "flex", gap: "var(--space-2)", flexWrap: "wrap"}}>
-                        <Button variant="secondary">Request second image</Button>
-                        <Button variant="secondary" onClick={() => router.push("/")}>
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                locateOnMap(incident.id);
+                                router.push("/");
+                            }}
+                        >
                             Locate on map
                         </Button>
                     </div>

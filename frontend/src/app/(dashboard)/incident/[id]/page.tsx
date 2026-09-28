@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { relativeTime } from "@/lib/utils/time";
@@ -10,17 +10,22 @@ import { DetailActionsBar } from "@/components/detail/DetailActionsBar";
 import { OverrideSeverityCard } from "@/components/detail/OverrideSeverityCard";
 import { HowScoredExplainer } from "@/components/detail/HowScoredExplainer";
 import { NearbyStrip } from "@/components/detail/NearbyStrip";
-import { IncidentImage } from "@/components/detail/IncidentImage";
+import { MergeIncidents } from "@/components/detail/MergeIncidents";
+import { IncidentGallery } from "@/components/detail/IncidentGallery";
+import { ActivityFeed } from "@/components/detail/ActivityFeed";
+import { AssignedCrews } from "@/components/dispatch/AssignedCrews";
+import { SupportRequestBanner } from "@/components/detail/SupportRequestBanner";
 import { MetaList } from "@/components/primitives/MetaField";
-import { DecisionLogList } from "@/components/primitives/DecisionLogList";
 import { SectionHeading } from "@/components/primitives/Card";
-import type { DecisionLogEntry } from "@/lib/types";
+import type { DecisionLogEntry, IncidentComment } from "@/lib/types";
+import { usePoll } from "@/lib/hooks/usePoll";
 import { CONFIDENCE_THRESHOLD } from "@/lib/constants/severity";
 
 // Stable reference so the Zustand selector below doesn't return a new array every render
 // (a fresh `[]` fallback on every call makes useSyncExternalStore think the snapshot changed
 // on every render, which is an infinite loop, not just a wasted render).
 const EMPTY_LOGS: DecisionLogEntry[] = [];
+const EMPTY_COMMENTS: IncidentComment[] = [];
 
 export default function IncidentDetailPage() {
   const router = useRouter();
@@ -29,11 +34,22 @@ export default function IncidentDetailPage() {
   const incident = useIncidentStore((s) => s.incidents[id]);
   const decisionLogs = useIncidentStore((s) => s.decisionLogs[id] ?? EMPTY_LOGS);
   const loadDecisionLog = useIncidentStore((s) => s.loadDecisionLog);
+  const comments = useIncidentStore((s) => s.comments[id] ?? EMPTY_COMMENTS);
+  const loadComments = useIncidentStore((s) => s.loadComments);
   // Refetch the server's log whenever this incident's server-side state changes (i.e. after a decision).
   const backendState = incident?.backend;
   useEffect(() => {
     loadDecisionLog(id);
   }, [id, backendState, loadDecisionLog]);
+  // Comments and decisions from other screens (crews, other coordinators) arrive by polling.
+  const loadActivity = useCallback(() => {
+    loadDecisionLog(id);
+    loadComments(id);
+  }, [id, loadDecisionLog, loadComments]);
+  useEffect(() => {
+    loadComments(id);
+  }, [id, loadComments]);
+  usePoll(loadActivity);
   const tick = useIncidentStore((s) => s.clockTick);
   const lastTabPath = useIncidentStore((s) => s.lastTabPath);
 
@@ -98,20 +114,20 @@ export default function IncidentDetailPage() {
 
       <article className="card" style={{ overflow: "hidden" }}>
         <SeverityHeader incident={incident} />
+        <SupportRequestBanner incidentId={incident.id} />
 
         {/* Two columns on desktop. Below 1024px the columns dissolve (layout.css) so the actions lead,
             image and metadata follow, and the exportable record goes last. */}
         <div className="detail-grid">
           <div className="detail-col" style={{ gap: "var(--space-4)" }}>
             <div className="d-image">
-              <IncidentImage key={incident.file} imageId={incident.file} alt={`Field image for ${incident.place}`} />
+              <IncidentGallery incident={incident} />
             </div>
             <div className="d-meta">
             <MetaList
               rows={[
                 { label: "Location", value: incident.place },
                 { label: "Captured", value: relativeTime(incident.capturedAtIso, tick) },
-                { label: "Distance", value: `${incident.distanceKm.toFixed(1)} km from staging` },
                 { label: "Class", value: classificationLabel },
                 { label: "Priority", value: priorityLabel },
                 { label: "Group", value: incident.groupId ?? "None", mono: !!incident.groupId },
@@ -138,6 +154,15 @@ export default function IncidentDetailPage() {
 
           <div className="detail-col" style={{ gap: "var(--space-5)" }}>
             <DetailActionsBar incident={incident} />
+
+            {incident.dispatch === "live" ? (
+              <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                <SectionHeading as="h2" note="Recall a crew with ✕. Recalling the last one puts the fire back in the dispatch order.">
+                  Crews
+                </SectionHeading>
+                <AssignedCrews incidentId={incident.id} showAdd />
+              </section>
+            ) : null}
 
             {incident.recommendedAction ? (
               <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -185,11 +210,13 @@ export default function IncidentDetailPage() {
 
             <OverrideSeverityCard incident={incident} />
 
+            <MergeIncidents incident={incident} />
+
             <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              <SectionHeading as="h2" note="Original tag, new value, who changed it and when.">
-                Decision log
+              <SectionHeading as="h2" note="Comments and decisions, newest first, with who and when.">
+                Activity
               </SectionHeading>
-              <DecisionLogList entries={decisionLogs} />
+              <ActivityFeed incidentId={incident.id} decisions={decisionLogs} comments={comments} />
             </section>
 
             <HowScoredExplainer incident={incident} />

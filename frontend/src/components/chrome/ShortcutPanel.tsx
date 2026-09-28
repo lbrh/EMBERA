@@ -12,7 +12,7 @@ const GROUPS = [
       { keys: ["←", "→"], what: "Switch screen, from anywhere on the page except the focused map." },
       { keys: ["↑↓←→"], what: "Pan the map when it has focus." },
       { keys: ["+", "−"], what: "Zoom the map when it has focus." },
-      { keys: ["Alt", "1–6"], what: "Jump to Map, Dispatch order, Manual review, Resolved, Archive or Submit image." },
+      { keys: ["Alt", "1–7"], what: "Jump to Map, Dispatch order, Manual review, Resolved, Archive, Submit image or Crews." },
     ],
   },
   {

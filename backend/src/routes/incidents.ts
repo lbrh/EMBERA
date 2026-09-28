@@ -51,7 +51,7 @@ incidentsRouter.post('/images/:id/assess', requireCaller('classifier'), async (r
 
     try {
         const input = parseSeverityAssessmentInput(req.body);
-        const result = assessSeverity(input);
+        const result = assessSeverity({ ...input, weather: existing.weather });
         const updated = await metadataRepository.update(req.params.id, result);
         res.status(200).json(updated);
     } catch (err) {

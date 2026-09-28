@@ -93,10 +93,11 @@ export function RankedIncidentRow({ incident }: { incident: Incident }) {
         </div>
         <div className="rail-row__detail">
           {incident.explanation ? <p className="rail-row__explanation">{incident.explanation}</p> : null}
-          <span className="data">
-            {incident.distanceKm.toFixed(1)} km from staging
-            {smoke != null ? ` · smoke ${smoke} · flame ${flame} · vegetation ${vegetation} · infrastructure ${infrastructure}` : ""}
-          </span>
+          {smoke != null ? (
+            <span className="data">
+              smoke {smoke} · flame {flame} · vegetation {vegetation} · infrastructure {infrastructure}
+            </span>
+          ) : null}
         </div>
       </div>
     </button>

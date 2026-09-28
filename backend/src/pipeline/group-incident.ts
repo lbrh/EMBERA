@@ -1,16 +1,8 @@
 import * as metadataRepository from '../metadata/metadata.repository.ts';
+import { haversineKm } from '../utils/geo.ts';
 
 const RADIUS_KM = 2;
 const WINDOW_HOURS = 6;
-
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const earthRadiusKm = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 // Hybrid auto-grouping rule (docs/decisions/decision-log.md D-02): attach to the nearest
 // existing incident if its most recent image is within 2km and 6 hours, else the caller

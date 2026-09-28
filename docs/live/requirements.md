@@ -2,7 +2,7 @@
 
 **Status:** Live. Consolidates every requirements doc from Sprint 1 and Sprint 2 Week 1 into the current set. Build status is as of the date below.
 **Owner:** Aryaveer Singh (BA). Consolidated by Liam Robinson Hounsell (Dev 2); items marked **(pending BA)** changed after the BA's last document and need sign-off.
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 **Project:** EMBERA (Emergency Monitoring for Bushfire Evaluation, Response and Awareness) · **Client:** IBM (Naresh Olladapu, technical supervisor; Emily Chin, non-technical supervisor) · **Team:** Team 8, Team B
 
 Sources: [Week 1 users & requirements](../archive/sprint-1/requirements/week-1/Define_Target_Users_&_Core_Requirements.md) · [Week 2 user stories](../archive/sprint-1/requirements/week-2/Refine%20User%20Stories%2C%20Requirements%20%26%20Traceability.md) · [Sprint 1 final](../archive/sprint-1/requirements/final/Sprint1_AI_Req_Acceptance_Criteria.md) · [Sprint 2 W1](../archive/sprint-2/week-1/Sprint2_Implementation_Requirements_&_Acceptance_Criteria.md)
@@ -30,7 +30,7 @@ Sources: [Week 1 users & requirements](../archive/sprint-1/requirements/week-1/D
 | FR9 | Each ranked incident explains its position using the indicators | Should | 🟡 `severity_explanation` built; ranking reason not built | ❌ |
 | FR10 / FR13 | Low-confidence images routed to manual review, never shown as confirmed | Must | ✅ `assessment_status` routing | ❌ review queue |
 | FR11 | Four input methods (manual, drone, satellite, bulk/API) through one pipeline | Must | ✅ one API, `source_type` enum | ❌ |
-| FR12 | Hybrid incident grouping: auto-group, coordinator confirms or splits | Must | 🟡 auto-group (2 km / 6 h) built; confirm/split not built | ❌ |
+| FR12 | Hybrid incident grouping: auto-group, coordinator confirms or splits | Must | ✅ auto-group (2 km / 6 h, open incidents only); `POST /incidents/:id/merge`, `POST /images/:id/split` | ✅ "Same fire?" merge and gallery split on the incident page |
 | FR14 | Immediate override with undo and 5 s toast, logged (original, new, who, when) | Must | ✅ `PATCH /images/:id/decision`, every change logged in `decisions` (who is unverified until login exists) | ✅ override, undo and 5 s toast wired to the API |
 
 ## 3. AI input and output
@@ -41,7 +41,7 @@ Sources: [Week 1 users & requirements](../archive/sprint-1/requirements/week-1/D
 
 | Output | Status |
 |---|---|
-| Fire / non-fire classification before severity scoring | ❌ Not built. Every image is scored as `fire` for now. |
+| Fire / non-fire classification before severity scoring | 🟡 Rule, not a model: smoke or flame at 2–4 = fire; both at 1 = uncertain → manual review (D-33). |
 | Severity 1 (Moderate) to 4 (Catastrophic) per the [severity rubric](severity-rubric.md) | ✅ |
 | Confidence 0 to 1, always shown with the tag | ✅ (min of indicator confidences) |
 | Plain-language explanation naming the driving indicators | ✅ |
@@ -60,7 +60,7 @@ The result is written to the stored record in the background. Submitters get the
 
 Flow: submission → fire gate (≤ 0.75 → Uncertain; confident non-fire → Archive) → severity scoring (≤ 0.75 → Uncertain) → Fire. Archive and Resolved are separate lists; nothing is deleted.
 
-Build status: `classification_label` supports all four values. Archive (discard), Resolved (extinguish) and reopen are built as coordinator actions (`classification_label_override`, `incident_dispatch`); the automatic fire gate is not built.
+Build status: `classification_label` supports all four values. Archive (discard), Resolved (extinguish) and reopen are built as coordinator actions (`classification_label_override`, `incident_dispatch`). The fire gate is the smoke/flame rule (D-33): it only produces `fire` or `uncertain`, so nothing is dismissed without a reviewer.
 
 **Acceptance criteria:**
 1. Every submission resolves to Fire, Non-Fire or Uncertain, never unclassified.
@@ -87,7 +87,7 @@ Build status: `classification_label` supports all four values. Archive (discard)
 | Override | Immediate, undo available | Built. |
 | Map clarity | Zero overlapping markers at default zoom | Not built. |
 | No data loss | Nothing lost between submission and storage | Record written before upload; failed uploads kept with `ingestion_error`. |
-| Load tolerance | Survive a spike of simultaneous submissions | Grouping is locked against races; rate limit 30 req/min per API key (see open questions). |
+| Load tolerance | Survive a spike of simultaneous submissions | Grouping is locked against races; rate limit 600 reads + 60 writes per minute per caller and client IP (D-29). |
 | Graceful degradation | Clear error rather than silent failure | Classification failures leave the record in `pending_review` and are logged. |
 
 All targets are team-proposed and not client-confirmed.

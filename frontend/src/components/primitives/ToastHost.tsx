@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { SeverityDot } from "@/components/primitives/SeverityDot";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 
 /** Fixed top right (above the tab bar on a phone, see .toast-stack), 5 s auto-clear with a visible countdown, dismiss early with the close button.
  * Non-blocking: the page underneath stays fully interactive. */
 export function ToastHost() {
+  const router = useRouter();
   const toasts = useIncidentStore((s) => s.toasts);
   const dismissToast = useIncidentStore((s) => s.dismissToast);
 
@@ -34,19 +36,36 @@ export function ToastHost() {
               <span style={{ font: "600 var(--text-sm)/1.35 var(--font-plex-sans)", color: "var(--fg)" }}>
                 {toast.title}
               </span>
-              <span className="caption">{toast.body}</span>
-              {toast.cta === "undo" && toast.onUndo ? (
-                <button
-                  type="button"
-                  className="btn btn--link"
-                  style={{ alignSelf: "flex-start", marginTop: 6, fontSize: "var(--text-xs)" }}
-                  onClick={() => {
-                    toast.onUndo?.();
-                    dismissToast(toast.id);
-                  }}
-                >
-                  Undo
-                </button>
+              {toast.body ? <span className="caption">{toast.body}</span> : null}
+              {toast.viewHref || (toast.cta === "undo" && toast.onUndo) ? (
+                <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 6 }}>
+                  {toast.viewHref ? (
+                    <button
+                      type="button"
+                      className="btn btn--link"
+                      style={{ fontSize: "var(--text-xs)" }}
+                      onClick={() => {
+                        router.push(toast.viewHref!);
+                        dismissToast(toast.id);
+                      }}
+                    >
+                      {toast.viewLabel ?? "View"}
+                    </button>
+                  ) : null}
+                  {toast.cta === "undo" && toast.onUndo ? (
+                    <button
+                      type="button"
+                      className="btn btn--link"
+                      style={{ fontSize: "var(--text-xs)" }}
+                      onClick={() => {
+                        toast.onUndo?.();
+                        dismissToast(toast.id);
+                      }}
+                    >
+                      Undo
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <button
