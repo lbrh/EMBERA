@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
 import { relativeTime } from "@/lib/utils/time";
-import { setViewingCrew } from "@/lib/utils/viewingCrew";
 import { ASSIGNMENT_LABEL, CREW_TYPE_LABEL } from "@/lib/constants/crews";
 import type { Crew } from "@/lib/types";
 import { Button } from "@/components/primitives/Button";
@@ -68,7 +66,6 @@ export default function CrewsPage() {
 }
 
 function CrewRow({ crew }: { crew: Crew }) {
-  const router = useRouter();
   const incident = useIncidentStore((s) => (crew.assignment ? s.incidents[crew.assignment.incidentId] : undefined));
   const tick = useIncidentStore((s) => s.clockTick);
   const recallCrew = useIncidentStore((s) => s.recallCrew);
@@ -89,7 +86,7 @@ function CrewRow({ crew }: { crew: Crew }) {
             </span>
             {incident ? (
               // drops below the status chip when there isn't room for a readable name
-              <Link href={`/incident/${incident.id}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: "1 1 180px", minWidth: 0, color: "var(--fg)" }}>
+              <Link href={`/coordinator/incident/${incident.id}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: "1 1 180px", minWidth: 0, color: "var(--fg)" }}>
                 <SeverityDot band={incident.band} size={18} numeral={false} />
                 <span style={{ font: "500 var(--text-sm)/1.3 var(--font-plex-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {incident.place}
@@ -115,16 +112,6 @@ function CrewRow({ crew }: { crew: Crew }) {
             Recall
           </Button>
         ) : null}
-        <Button
-          small
-          variant="link"
-          onClick={() => {
-            setViewingCrew(crew.id);
-            router.push("/crew");
-          }}
-        >
-          Crew view
-        </Button>
       </div>
     </div>
   );

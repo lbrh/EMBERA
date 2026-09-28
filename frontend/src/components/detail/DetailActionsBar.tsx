@@ -30,7 +30,7 @@ export function DetailActionsBar({ incident }: { incident: Incident }) {
     setMapFilter("all");
     setMapView({ center: [incident.coords.lat, incident.coords.lng], zoom: LOCATE_ZOOM });
     setLocatedIncidentId(incident.id);
-    router.push("/");
+    router.push("/coordinator");
   }
 
   // one slot walks the lifecycle: dispatch -> (live, no primary action) -> archive
@@ -60,11 +60,11 @@ export function DetailActionsBar({ incident }: { incident: Incident }) {
       <Button
         variant="secondary"
         ack={!isFlagged}
-        onClick={() => (isFlagged ? router.push("/review") : sendToManualReview(incident.id))}
+        onClick={() => (isFlagged ? router.push("/coordinator/review") : sendToManualReview(incident.id))}
       >
         {isFlagged ? "Open in manual review" : "Send to manual review"}
       </Button>
-      <Button variant="secondary" onClick={() => router.push("/dispatch")}>
+      <Button variant="secondary" onClick={() => router.push("/coordinator/dispatch")}>
         View in dispatch order
       </Button>
       {isOnDispatchOrder ? (

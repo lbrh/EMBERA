@@ -16,13 +16,11 @@ import { useTrackLastTabPath } from "@/lib/hooks/useTrackLastTabPath";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const init = useIncidentStore((s) => s.init);
   const initialized = useIncidentStore((s) => s.initialized);
-  const syncThemeFromDocument = useIncidentStore((s) => s.syncThemeFromDocument);
   const refresh = useIncidentStore((s) => s.refresh);
 
   useEffect(() => {
-    syncThemeFromDocument();
     init();
-  }, [init, syncThemeFromDocument]);
+  }, [init]);
 
   useClock();
   usePoll(refresh);

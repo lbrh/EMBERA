@@ -106,7 +106,7 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
                   Detections at or below the {CONFIDENCE_THRESHOLD} confidence threshold need a
                   coordinator&apos;s call before they can be dispatched.
                 </p>
-                <Button variant="secondary" small style={{ alignSelf: "flex-start", marginTop: 4 }} onClick={() => router.push("/review")}>
+                <Button variant="secondary" small style={{ alignSelf: "flex-start", marginTop: 4 }} onClick={() => router.push("/coordinator/review")}>
                   Open review queue
                 </Button>
               </div>
@@ -134,7 +134,7 @@ export function ActiveIncidentsRail({ width }: { width: number }) {
         <button
           type="button"
           className="row-btn"
-          onClick={() => router.push("/review")}
+          onClick={() => router.push("/coordinator/review")}
           style={{
             display: "flex",
             alignItems: "center",

@@ -79,7 +79,7 @@ export default function DispatchOrderPage() {
         {showLive ? (
           <section aria-label="Live">
             <SectionBar tone="ok" title="Live" count={live.length} note="Stays live until the crew reports the fire out." />
-            <SectionBar tone="ok" title="Live" count={live.length} note="Crews mark the fire extinguished (or a false alarm) from the Crew tab." />
+            <SectionBar tone="ok" title="Live" count={live.length} note="Crews mark the fire extinguished (or a false alarm) from the crew view." />
             {live.length === 0 ? (
               <EmptyRow text="No crews out yet. Incidents move here when you dispatch a crew." />
             ) : (
@@ -125,7 +125,7 @@ export default function DispatchOrderPage() {
           {flaggedCount > 0 ? ` ${flaggedCount} waiting now.` : ""}
         </p>
         {flaggedCount > 0 ? (
-          <Button variant="pending" small onClick={() => router.push("/review")}>
+          <Button variant="pending" small onClick={() => router.push("/coordinator/review")}>
             Open review queue
           </Button>
         ) : null}

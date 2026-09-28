@@ -53,7 +53,7 @@ export default function ManualReviewPage() {
               Every current detection cleared the {CONFIDENCE_THRESHOLD} confidence threshold. Anything at or below it
               comes here instead of being forced into a severity level.
             </p>
-            <Link href="/dispatch" className="btn btn--secondary btn--sm" style={{ alignSelf: "flex-start", marginTop: 4 }}>
+            <Link href="/coordinator/dispatch" className="btn btn--secondary btn--sm" style={{ alignSelf: "flex-start", marginTop: 4 }}>
               Go to dispatch order
             </Link>
           </div>

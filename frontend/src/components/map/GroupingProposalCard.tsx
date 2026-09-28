@@ -58,7 +58,7 @@ export function GroupingProposalCard() {
             key={m.id}
             type="button"
             className="btn btn--secondary btn--sm"
-            onClick={() => router.push(`/incident/${m.id}`)}
+            onClick={() => router.push(`/coordinator/incident/${m.id}`)}
             style={{ gap: 8, paddingLeft: 10, paddingRight: 6 }}
           >
             <span className="data" style={{ font: "500 var(--text-2xs)/1 var(--font-plex-mono)" }}>

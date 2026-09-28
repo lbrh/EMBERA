@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { getViewingCrew, setViewingCrew } from "@/lib/utils/viewingCrew";
 import { COORDINATOR_NAME, setActor } from "@/lib/data-source";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
@@ -9,7 +8,7 @@ import { usePoll } from "@/lib/hooks/usePoll";
 import { relativeTime } from "@/lib/utils/time";
 import { ASSIGNMENT_LABEL, CREW_TYPE_LABEL } from "@/lib/constants/crews";
 import { SEVERITY, SEVERITY_ORDER } from "@/lib/constants/severity";
-import type { Crew, CrewType, DecisionLogEntry, Incident, IncidentComment } from "@/lib/types";
+import type { Crew, CrewType, DecisionLogEntry, Incident, IncidentComment, SeverityBand } from "@/lib/types";
 import { Button } from "@/components/primitives/Button";
 import { SeverityChip } from "@/components/primitives/SeverityChip";
 import { SectionHeading } from "@/components/primitives/Card";
@@ -43,12 +42,9 @@ export default function CrewPage() {
   return (
     <div className="page" style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-        <Link href="/crews" className="btn btn--link" style={{ alignSelf: "flex-start", fontSize: "var(--text-xs)" }}>
-          <span aria-hidden>‹</span> All crews
-        </Link>
         <h1 className="page-title">Crew view</h1>
         <p className="page-lede">
-          What a response crew sees on their phone. Each crew would log in; for the demo, pick which crew you&apos;re viewing as.
+          Your assignment, status and on-scene actions. Each crew would log in; for the demo, pick which crew you&apos;re viewing as.
         </p>
       </div>
 
@@ -78,6 +74,9 @@ export default function CrewPage() {
       ) : (
         <CrewAssignment crew={crew} incident={incident} />
       )}
+
+      {/* under the assignment when there is one (CrewAssignment places it), else under Standing by */}
+      {crew && !crew.assignment ? <CrewLog crewId={crew.id} /> : null}
     </div>
   );
 }
@@ -165,6 +164,8 @@ function CrewAssignment({ crew, incident }: { crew: Crew; incident: Incident }) 
           <SupportRequestForm crew={crew} incidentId={incident.id} />
         </section>
       ) : null}
+
+      <CrewLog crewId={crew.id} />
 
       <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         <SectionHeading as="h2">Crews on this fire</SectionHeading>
@@ -277,5 +278,87 @@ function PhotoUpload({ incident }: { incident: Incident }) {
         </span>
       </div>
     </form>
+  );
+}
+
+/** Everything this crew did from this screen, newest first. The newest change still standing on
+ * each fire can be undone, per lane: status, the incident itself, support requests. Undoing an
+ * older one would also wipe out what came after it in that lane. A severity change can be changed
+ * again. */
+function CrewLog({ crewId }: { crewId: string }) {
+  const log = useIncidentStore((s) => s.crewLog);
+  const incidents = useIncidentStore((s) => s.incidents);
+  const tick = useIncidentStore((s) => s.clockTick);
+  const overrideSeverity = useIncidentStore((s) => s.overrideSeverity);
+  const entries = log.filter((e) => e.crewId === crewId);
+
+  const undoable = new Set<string>();
+  const seen = new Set<string>();
+  for (const e of entries) {
+    const key = `${e.incidentId}:${e.lane}`;
+    if (e.undoneAtIso || !e.undo || seen.has(key)) continue;
+    seen.add(key);
+    undoable.add(e.id);
+  }
+
+  return (
+    <section className="card" style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <SectionHeading as="h2" note="What you've done from this screen. Undo the latest change on a fire, or change a severity again.">
+        Your log
+      </SectionHeading>
+      {entries.length === 0 ? (
+        <p className="caption">Nothing yet. Status changes, calls and support requests show up here.</p>
+      ) : (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {entries.map((e) => {
+            const incident = incidents[e.incidentId];
+            const canUndo = undoable.has(e.id);
+            return (
+              <li
+                key={e.id}
+                style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "var(--space-2) var(--space-3)", padding: "var(--space-3) 0", borderTop: "1px solid var(--border)" }}
+              >
+                <div style={{ flex: "1 1 180px", minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span
+                    style={{
+                      font: "500 var(--text-sm)/1.4 var(--font-plex-sans)",
+                      color: e.undoneAtIso ? "var(--muted)" : "var(--fg)",
+                      textDecoration: e.undoneAtIso ? "line-through" : undefined,
+                    }}
+                  >
+                    {e.summary}
+                  </span>
+                  <span className="caption">
+                    <span className="data">{incident?.ref ?? "Incident"}</span> · {relativeTime(e.whenIso, tick)}
+                    {e.undoneAtIso ? ` · undone ${relativeTime(e.undoneAtIso, tick)}` : ""}
+                  </span>
+                </div>
+                {canUndo && e.band ? (
+                  <select
+                    className="input"
+                    aria-label={`Change the severity of ${incident?.ref ?? "this incident"}`}
+                    value=""
+                    onChange={(ev) => ev.target.value && overrideSeverity(e.incidentId, Number(ev.target.value) as SeverityBand)}
+                    style={{ width: "auto", height: 32, paddingBlock: 0 }}
+                  >
+                    <option value="">Change to…</option>
+                    {SEVERITY_ORDER.filter((b) => b !== incident?.band).map((b) => (
+                      <option key={b} value={b}>
+                        {SEVERITY[b].label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {canUndo ? (
+                  <Button small onClick={() => e.undo?.()}>
+                    Undo
+                  </Button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
   );
 }

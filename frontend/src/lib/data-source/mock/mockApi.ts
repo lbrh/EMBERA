@@ -9,6 +9,7 @@ import type {
   SeverityBand,
   SourceType,
   SupportRequest,
+  CrewStep,
 } from "@/lib/types";
 import { currentActor } from "../real/api";
 import { seedDecisionLog, seedGroup, seedOverlay, seedRecords } from "./seed";
@@ -64,8 +65,6 @@ export interface SubmitImagePayload {
   notes?: string;
   /** Adds the photo to this incident instead of grouping it by location (crew uploads). */
   incidentId?: string;
-  /** Demo-only hook so the four "Demo:" buttons on Submit can force a specific outcome. */
-  demoOutcome?: "valid" | "low_confidence" | "not_fire";
 }
 
 let submitCounter = 2292;
@@ -81,7 +80,7 @@ export async function submitImage(payload: SubmitImagePayload): Promise<{
   const ref = `SUB-${submitCounter}`;
   const id = `INC-${submitCounter++}`; // counter, not random — can't collide with seed IDs
 
-  const outcome = payload.demoOutcome ?? "valid";
+  // Every mock upload comes back as a scored fire, shaped like backend assessSeverity().
   const base: ApiIncidentRecord = {
     incidentId: id,
     imageId: payload.fileName,
@@ -90,51 +89,24 @@ export async function submitImage(payload: SubmitImagePayload): Promise<{
     sourceType: payload.sourceType,
     latitude,
     longitude,
-    severityScore: null,
+    severityScore: 3,
     severityScoreOverride: null,
     overriddenBy: null,
     overriddenAt: null,
-    severityExplanation: null,
-    confidenceScore: null,
-    assessmentStatus: "pending_review",
+    severityExplanation: "Continuous flame front with two outbuildings 600 m downwind; sealed-road access available.",
+    confidenceScore: 0.79,
+    assessmentStatus: "assessed",
     priorityRank: null,
     uploadStatus: "stored",
     ingestionError: null,
-    smokeDensity: null,
-    flameVisibility: null,
-    vegetationImpact: null,
-    infrastructureImpact: null,
-    classificationLabel: null,
+    smokeDensity: "dense_dark",
+    flameVisibility: "visible_high_flames_and_embers",
+    vegetationImpact: "moderate_vegetation",
+    infrastructureImpact: "moderate_infrastructure",
+    classificationLabel: "fire",
     classificationLabelOverride: null,
     contentHash: null,
   };
-
-  // Shapes match backend assessSeverity(): a confident non-fire is "assessed" with no indicators
-  // and goes straight to Archive (Sprint 2 §1.3).
-  if (outcome === "not_fire") {
-    base.assessmentStatus = "assessed";
-    base.classificationLabel = "non_fire";
-  } else if (outcome === "low_confidence") {
-    base.assessmentStatus = "unable_to_assess";
-    base.classificationLabel = "fire";
-    base.severityScore = 2;
-    base.confidenceScore = 0.38;
-    base.smokeDensity = "very_dense_blocking_vision";
-    base.flameVisibility = "some_flame";
-    base.vegetationImpact = "sparse_vegetation";
-    base.infrastructureImpact = "no_infrastructure";
-  } else {
-    base.assessmentStatus = "assessed";
-    base.classificationLabel = "fire";
-    base.confidenceScore = 0.79;
-    base.severityScore = 3;
-    base.smokeDensity = "dense_dark";
-    base.flameVisibility = "visible_high_flames_and_embers";
-    base.vegetationImpact = "moderate_vegetation";
-    base.infrastructureImpact = "moderate_infrastructure";
-    base.severityExplanation =
-      "Continuous flame front with two outbuildings 600 m downwind; sealed-road access available.";
-  }
 
   seedRecords.push(base);
   return delay({ ref, record: base }, 900);
@@ -213,7 +185,7 @@ export async function dispatchCrews(incident: Incident, crewIds: string[]): Prom
   return delay({ dispatch: "live", flag: "processed" });
 }
 
-export async function setCrewStatus(assignmentId: string, status: "en_route" | "on_scene"): Promise<void> {
+export async function setCrewStatus(assignmentId: string, status: CrewStep): Promise<void> {
   const crew = mockCrews.find((c) => c.assignment?.id === assignmentId);
   if (crew?.assignment) crew.assignment = { ...crew.assignment, status, updatedAtIso: new Date().toISOString() };
   return delay(undefined);

@@ -1,18 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
-import { useMock } from "@/lib/data-source";
-import { SOURCE_META } from "@/components/primitives/SourceChip";
 import { Button } from "@/components/primitives/Button";
-import type { SourceType } from "@/lib/types";
 import { EMPTY, MAX_NOTES, toLocalInput, validate, type FieldName, type FormState } from "@/lib/submission";
 
-const SOURCES: SourceType[] = ["citizen", "drone", "satellite", "cctv"];
-
-export default function SubmitImagePage() {
-  const router = useRouter();
+/** The public view: a member of the public reports a fire with a photo. Always filed as a
+ * citizen upload; the result goes to the coordinators, not back to the reporter. */
+export default function ReportFirePage() {
   const submitImage = useIncidentStore((s) => s.submitImage);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "processing" | "done">("idle");
@@ -21,23 +16,19 @@ export default function SubmitImagePage() {
   const [dragging, setDragging] = useState(false);
   // a field shows its problem once it's been left (or on submit), not while it's being typed
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
-  const errors = validate(form, false);
+  const errors = validate(form);
   const shown = (name: FieldName) => (touched[name] ? errors[name] : undefined);
   const touch = (name: FieldName) => setTouched((t) => ({ ...t, [name]: true }));
 
   const steps: { label: string; done: boolean; running?: boolean }[] = [
     { label: "Attach image", done: !!form.file && !errors.file },
     { label: "Geotag + capture time", done: !!(form.lat && form.lng && form.ts) && !errors.lat && !errors.lng && !errors.ts },
-    { label: "AI assessment running", done: status === "done", running: status === "processing" },
-    { label: "Submission confirmed", done: status === "done" },
+    { label: "Checking the photo", done: status === "done", running: status === "processing" },
+    { label: "Report received", done: status === "done" },
   ];
 
-  async function handleSubmit(demoOutcome?: "valid" | "low_confidence" | "not_fire") {
-    // Demo buttons (mock only) fill in anything left blank so they always reach the outcome.
-    const f = demoOutcome
-      ? { ...form, lat: form.lat || "-37.62", lng: form.lng || "145.31", ts: form.ts || toLocalInput(new Date()) }
-      : form;
-    const problems = validate(f, !!demoOutcome);
+  async function handleSubmit() {
+    const problems = validate(form);
     const first = (Object.keys(problems) as FieldName[])[0];
     if (first) {
       setTouched({ file: true, lat: true, lng: true, ts: true, notes: true });
@@ -48,19 +39,18 @@ export default function SubmitImagePage() {
     setError(null);
     setStatus("processing");
     try {
+      const file = form.file!; // validate() requires one
       const result = await submitImage({
-        file: f.file ?? undefined,
-        fileName: f.file?.name ?? "IMG_demo.jpg",
-        latitude: f.lat ? Number(f.lat) : undefined,
-        longitude: f.lng ? Number(f.lng) : undefined,
-        timestamp: f.ts ? new Date(f.ts).toISOString() : undefined,
-        sourceType: f.source,
-        notes: f.notes,
-        demoOutcome,
+        file,
+        fileName: file.name,
+        latitude: form.lat ? Number(form.lat) : undefined,
+        longitude: form.lng ? Number(form.lng) : undefined,
+        timestamp: form.ts ? new Date(form.ts).toISOString() : undefined,
+        sourceType: form.source,
+        notes: form.notes,
       });
       setLastRef(result.ref);
       setStatus("done");
-      setTimeout(() => router.push(`/incident/${result.incidentId}`), 900);
     } catch (err) {
       setStatus("idle");
       setError(err instanceof Error ? err.message : "Submission failed.");
@@ -93,10 +83,11 @@ export default function SubmitImagePage() {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-        <h1 className="page-title">Submit a field image</h1>
+        <h1 className="page-title">Report a fire</h1>
         <p className="page-lede">
-          Every image runs the fire or not-a-fire check first, then severity scoring. Geotag and
-          capture time are required. Leave them blank to read them from the image&apos;s EXIF data.
+          Send a photo of the fire and where you took it. It&apos;s checked and passed to the fire
+          coordinators. Leave the location and time blank to read them from the photo. In an
+          emergency, call 000 first.
         </p>
       </div>
 
@@ -147,8 +138,8 @@ export default function SubmitImagePage() {
           </div>
         ) : null}
 
-        {/* Progress and source sit beside the fields on desktop and across the top on a tablet; a
-            phone puts a compact stepper on top and the source picker after the fields (layout.css). */}
+        {/* Progress sits beside the fields on desktop and across the top on a tablet; a phone puts
+            a compact stepper on top (layout.css). */}
         <div className="submit-grid">
           <div className="submit-aside">
             <div className="submit-progress" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -196,39 +187,6 @@ export default function SubmitImagePage() {
               </ol>
             </div>
 
-            <fieldset className="submit-source">
-              <legend className="label" style={{ padding: 0, marginBottom: "var(--space-2)" }}>
-                Input source
-              </legend>
-              <div className="submit-sources">
-                {SOURCES.map((src) => {
-                  const on = form.source === src;
-                  return (
-                    <button
-                      key={src}
-                      type="button"
-                      aria-pressed={on}
-                      className="sev-option"
-                      onClick={() => setForm((f) => ({ ...f, source: src }))}
-                      style={{
-                        height: "auto",
-                        minHeight: 60,
-                        padding: "var(--space-2) var(--space-3)",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        justifyContent: "center",
-                        gap: 4,
-                      }}
-                    >
-                      <span style={{ font: "600 var(--text-xs)/1 var(--font-plex-sans)" }}>{SOURCE_META[src].abbr}</span>
-                      <span style={{ font: "400 12px/1.3 var(--font-plex-sans)", color: "var(--muted)", textAlign: "left" }}>
-                        {SOURCE_META[src].label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
           </div>
 
           <div className="submit-fields">
@@ -340,7 +298,7 @@ export default function SubmitImagePage() {
                 />
               </Field>
             </div>
-            <button type="button" className="btn btn--link" onClick={fillDeviceLocation} style={{ alignSelf: "flex-start", marginTop: -8, fontSize: "var(--text-xs)" }}>
+            <button type="button" className="btn btn--link tap-link" onClick={fillDeviceLocation} style={{ alignSelf: "flex-start", marginTop: -8, fontSize: "var(--text-xs)" }}>
               Use device location
             </button>
 
@@ -359,7 +317,7 @@ export default function SubmitImagePage() {
             </Field>
             <button
               type="button"
-              className="btn btn--link"
+              className="btn btn--link tap-link"
               onClick={() => {
                 setForm((f) => ({ ...f, ts: toLocalInput(new Date()) }));
                 touch("ts");
@@ -413,7 +371,7 @@ export default function SubmitImagePage() {
               }}
             />
             <span style={{ font: "600 var(--text-sm)/1.4 var(--font-plex-sans)", color: "var(--ok-fg)" }}>
-              {status === "done" ? "Submission confirmed" : "Assessing fire behaviour and exposure…"}
+              {status === "done" ? "Report received" : "Checking your photo…"}
               {lastRef ? <span className="data" style={{ fontFamily: "var(--font-plex-mono)", fontWeight: 500 }}> · ref {lastRef}</span> : null}
             </span>
           </div>
@@ -431,11 +389,11 @@ export default function SubmitImagePage() {
           }}
         >
           <Button type="submit" variant="primary" disabled={status === "processing"}>
-            {status === "processing" ? "Submitting…" : "Submit for assessment"}
+            {status === "processing" ? "Sending…" : "Send report"}
           </Button>
           <button
             type="button"
-            className="btn btn--quiet"
+            className="btn btn--quiet tap-link"
             onClick={() => {
               setForm(EMPTY);
               setTouched({});
@@ -443,31 +401,14 @@ export default function SubmitImagePage() {
               setStatus("idle");
             }}
           >
-            Clear form
+            {status === "done" ? "Report another" : "Clear form"}
           </button>
           <span className="caption" style={{ marginLeft: "auto" }}>
-            {status === "done" && lastRef ? "Opening the incident…" : form.file ? "Ready to submit" : "An image is required"}
+            {status === "done" && lastRef ? "Thanks, the coordinators have it." : form.file ? "Ready to submit" : "An image is required"}
           </span>
         </div>
       </form>
 
-      {useMock ? (
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          <span className="caption" style={{ marginRight: 4 }}>
-            Demo outcomes
-          </span>
-          <DemoButton
-            label="Missing geotag"
-            onClick={() => {
-              setForm((f) => ({ ...f, lat: "", lng: "" }));
-              setError("No geotag found in the image EXIF data. Enter the coordinates, or use the device location.");
-            }}
-          />
-          <DemoButton label="Valid submission" onClick={() => handleSubmit("valid")} />
-          <DemoButton label="Low-confidence result" onClick={() => handleSubmit("low_confidence")} />
-          <DemoButton label="Not-a-fire result" onClick={() => handleSubmit("not_fire")} />
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -501,13 +442,5 @@ function Field({
         </span>
       ) : null}
     </div>
-  );
-}
-
-function DemoButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button type="button" className="btn btn--pending btn--sm" onClick={onClick}>
-      {label}
-    </button>
   );
 }

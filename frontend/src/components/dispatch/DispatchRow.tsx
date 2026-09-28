@@ -28,9 +28,9 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
       aria-label={`${rank ? `Rank ${rank}, ` : "Live, "}${incident.place}, open incident`}
       // a table row on desktop, a card below 1024px (.dispatch-row in layout.css)
       className={`row-btn dispatch-grid dispatch-row${pulsing ? " row-pulse" : ""}`}
-      onClick={() => router.push(`/incident/${incident.id}`)}
+      onClick={() => router.push(`/coordinator/incident/${incident.id}`)}
       onKeyDown={(e) => {
-        if (e.key === "Enter" && e.target === e.currentTarget) router.push(`/incident/${incident.id}`);
+        if (e.key === "Enter" && e.target === e.currentTarget) router.push(`/coordinator/incident/${incident.id}`);
       }}
       style={{
         borderBottom: "1px solid var(--border)",
@@ -98,7 +98,7 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         </span>
       </div>
       <div className="dr-action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} style={{ justifySelf: "end" }}>
-        {/* only crews close a fire (Crew tab); the coordinator can send more help */}
+        {/* only crews close a fire (crew view); the coordinator can send more help */}
         {isLive ? (
           <Button variant="secondary" small onClick={() => openCrewPicker(incident.id)}>
             Add crew

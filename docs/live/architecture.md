@@ -78,7 +78,7 @@ All routes except `/` and `/health` need an `x-api-key` header whose value is li
 | GET | `/incidents/:incidentId/comments` | Comments, newest first: author, body, when. **`frontend` caller only.** |
 | GET | `/crews` | Every crew with its station and open assignment (`null` = available), by label. **`frontend` caller only.** |
 | POST | `/incidents/:incidentId/assignments` | `{ crewIds, by }` (1–10 crews) sends crews and sets the incident `live`, all or nothing. 201 with the assignments; 409 if a crew is already out; 400 for an unknown crew. **`frontend` caller only.** |
-| PATCH | `/assignments/:assignmentId` | `{ status, by }`: `en_route`, `on_scene` (one step forward at a time) or `cleared` (recall). 409 for an out-of-order step. Clearing the last crew on a live incident sets it back to `awaiting`. **`frontend` caller only.** |
+| PATCH | `/assignments/:assignmentId` | `{ status, by }`: one step at a time, forward (`en_route`, `on_scene`) or back one step so a crew can undo (`dispatched`, `en_route`), or `cleared` (recall). 409 for a skipped step. Clearing the last crew on a live incident sets it back to `awaiting`. **`frontend` caller only.** |
 | POST | `/incidents/:incidentId/support-requests` | `{ crewId, crewType?, note?, by }`: a crew assigned to the incident asks for more help. 201; 409 if the crew isn't on it. **`frontend` caller only.** |
 | GET | `/support-requests` | Open support requests, newest first, with the asking crew's label. **`frontend` caller only.** |
 | PATCH | `/support-requests/:id` | `{ status, by }`, status `fulfilled` or `dismissed`. **`frontend` caller only.** |

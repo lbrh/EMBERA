@@ -56,6 +56,7 @@ export default function IncidentDetailPage() {
   if (!incident) {
     return (
       <div style={{ padding: "var(--space-8) var(--space-5)", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)" }}>
+        <title>{`Incident not found · EMBERA`}</title>
         <p style={{ font: "600 var(--text-base)/1.4 var(--font-plex-sans)", color: "var(--fg)" }}>Incident {id} not found</p>
         <p className="caption">Check the ID, or go back and open it from the list.</p>
         <button type="button" className="btn btn--secondary btn--sm" onClick={() => router.push(lastTabPath)}>
@@ -103,6 +104,7 @@ export default function IncidentDetailPage() {
 
   return (
     <div className="page" style={{ maxWidth: 1200, paddingTop: "var(--space-5)" }}>
+      <title>{`${incident.ref} · ${incident.place} · EMBERA`}</title>
       <button
         type="button"
         className="btn btn--link"

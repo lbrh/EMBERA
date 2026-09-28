@@ -41,7 +41,7 @@ export function SupportRequestAlerts() {
                 Dismiss
               </Button>
               {incident ? (
-                <Link href={`/incident/${incident.id}`} className="btn btn--link btn--sm" style={{ alignSelf: "center" }}>
+                <Link href={`/coordinator/incident/${incident.id}`} className="btn btn--link btn--sm" style={{ alignSelf: "center" }}>
                   Open {incident.ref}
                 </Link>
               ) : null}

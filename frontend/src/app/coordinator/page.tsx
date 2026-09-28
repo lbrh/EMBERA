@@ -17,6 +17,8 @@ export default function MapPage() {
   const [listExpanded, setListExpanded] = useState(false);
   return (
     <div className="map-layout" data-list={listExpanded ? "expanded" : undefined}>
+      {/* the map is the page, so its heading is for screen readers only (absolutely positioned, off the grid) */}
+      <h1 className="sr-only">Incident map</h1>
       <MapCanvas />
       <RailResizer width={railWidth} onChange={setRailWidth} />
       <button

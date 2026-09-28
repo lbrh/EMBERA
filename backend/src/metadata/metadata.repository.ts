@@ -497,10 +497,11 @@ export async function findComments(incidentId: string): Promise<Comment[]> {
 // A request that clashes with the current state, e.g. a crew that's already on another incident.
 export class ConflictError extends Error {}
 
+// One step forward, or one step back so a crew can undo a status it set by mistake.
 const NEXT_STATUS: Record<AssignmentStatus, AssignmentStatus[]> = {
     dispatched: ['en_route', 'cleared'],
-    en_route: ['on_scene', 'cleared'],
-    on_scene: ['cleared'],
+    en_route: ['on_scene', 'dispatched', 'cleared'],
+    on_scene: ['en_route', 'cleared'],
     cleared: [],
 };
 
