@@ -231,6 +231,22 @@
   gap: var(--space-3);
 }
 
+.lp-persona__who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-1);
+}
+
+/* square, flat, IBM people-illustration portrait */
+.lp-persona__photo {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
 .lp-persona__shot {
   display: flex;
   justify-content: center;

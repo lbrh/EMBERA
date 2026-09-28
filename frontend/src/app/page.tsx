@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {LogoMark, SimpleHeader} from "@/components/chrome/Header";
 import SHOTS from "@/lib/constants/product-shots.json";
@@ -13,6 +14,9 @@ const PERSONAS = [
         flow: ["Takes a photo of the smoke", "Adds where and when, one tap each", "Sends it and gets a reference number"],
         href: "/civilian",
         shot: "civilian",
+        // flat illustration in IBM's people style (made with Canva)
+        photo: "/personas/civilian-illustration.jpg",
+        photoAlt: "Illustration of Jess, a resident, holding a phone",
         alt: "The Report a fire form on a phone, filled in and ready to send",
     },
     {
@@ -25,6 +29,9 @@ const PERSONAS = [
         flow: ["Sees every fire on one map, ranked", "Checks why the AI rated it that way", "Works down the dispatch order", "Sends the nearest free crew"],
         href: "/coordinator",
         shot: "coordinator-dispatch",
+        // flat illustration in IBM's people style (made with Canva)
+        photo: "/personas/coordinator-illustration.jpg",
+        photoAlt: "Illustration of Sam, a coordinator, wearing a headset",
         alt: "The coordinator's dispatch order, ranked by severity",
     },
     {
@@ -35,6 +42,9 @@ const PERSONAS = [
         flow: ["Gets the assignment, with directions", "Reports en route, then on scene", "Marks the fire out, or calls for more crews", "Checks the log, and undoes a mistake"],
         href: "/crew",
         shot: "crew-on-scene",
+        // flat illustration in IBM's people style (made with Canva)
+        photo: "/personas/crew-illustration.jpg",
+        photoAlt: "Illustration of Alex, a crew leader, in a firefighting helmet and jacket",
         alt: "A crew's on-scene actions on a phone",
     },
 ];
@@ -207,10 +217,16 @@ export default function Overview() {
                         {PERSONAS.map((p) => (
                             <article key={p.id} className={p.band ? "lp-persona lp-persona--band" : "lp-persona"} aria-labelledby={`lp-${p.id}`}>
                                 <div className="lp-persona__text">
-                                    <span className="lp-eyebrow">{p.view}</span>
-                                    <h3 id={`lp-${p.id}`} className="lp-h3">
-                                        {p.name}
-                                    </h3>
+                                    <div className="lp-persona__who">
+                                        {/* 200px source, shown at 96px (next/image serves the 2x size) */}
+                                        <Image src={p.photo} alt={p.photoAlt} width={96} height={96} className="lp-persona__photo"/>
+                                        <div style={{display: "flex", flexDirection: "column", gap: "var(--space-1)"}}>
+                                            <span className="lp-eyebrow">{p.view}</span>
+                                            <h3 id={`lp-${p.id}`} className="lp-h3">
+                                                {p.name}
+                                            </h3>
+                                        </div>
+                                    </div>
                                     <p className="lp-body">{p.about}</p>
                                     <ol className="lp-list lp-steps">
                                         {p.flow.map((step, i) => (
