@@ -1,0 +1,18 @@
+{
+  "coordinator-map": [
+    1440,
+    900
+  ],
+  "coordinator-dispatch": [
+    1440,
+    900
+  ],
+  "civilian": [
+    358,
+    634
+  ],
+  "crew-on-scene": [
+    390,
+    525
+  ]
+}

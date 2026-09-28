@@ -49,37 +49,37 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* ---- page ---- */
-  --bg: #f8fafc;
+  --bg: #f4f4f4;
   --bg-header: rgb(255 255 255 / 88%);
-  --map-bg: #eef2f7;
+  --map-bg: #e0e0e0;
   --halo: #ffffff;
 
   /* ---- surfaces ---- */
   --panel: #ffffff;
-  --surface: #f8fafc;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
-  --surface-4: #f1f5f9;
+  --surface: #f4f4f4;
+  --surface-2: #e0e0e0;
+  --surface-3: #e0e0e0;
+  --surface-4: #f4f4f4;
   --input-bg: #ffffff;
 
-  /* ---- text (cool slate, pairs with IBM blue) ---- */
-  --fg: #0f172a;
-  --fg-2: #334155;
-  --fg-3: #1e293b;
-  --fg-4: #475569;
-  --muted: #64748b;
-  --faint: #8391a7;
-  --faint-2: #cbd5e1;
+  /* ---- text: the IBM Gray family (Gray 100 primary) ---- */
+  --fg: #161616;
+  --fg-2: #393939;
+  --fg-3: #262626;
+  --fg-4: #525252;
+  --muted: #6f6f6f;
+  --faint: #8d8d8d;
+  --faint-2: #c6c6c6;
 
   /* ---- borders ---- */
   --border-w: 1px;
-  --border: #e2e8f0;
-  --border-2: #cbd5e1;
-  --border-3: #e2e8f0;
-  --border-4: #e2e8f0;
-  --border-5: #eef2f6;
-  --border-6: #e2e8f0;
-  --border-7: #94a3b8;
+  --border: #e0e0e0;
+  --border-2: #c6c6c6;
+  --border-3: #e0e0e0;
+  --border-4: #e0e0e0;
+  --border-5: #e0e0e0;
+  --border-6: #e0e0e0;
+  --border-7: #8d8d8d;
 
   /* ---- IBM Blue ---- */
   --accent: #0f62fe; /* Blue 60 */
@@ -147,13 +147,13 @@
   --sev4-tint: #f7e4e5;
   --sev4-halo-ring: #ff4d4d;
 
-  /* ---- elevation (Blue 60 tinted) ---- */
-  --shadow-color: rgb(15 23 42 / 12%);
-  --shadow-xs: 0 1px 2px rgb(15 23 42 / 6%);
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 4px 20px -2px rgb(15 98 254 / 8%);
-  --shadow-card-hover: 0 10px 25px -5px rgb(15 98 254 / 15%), 0 8px 10px -6px rgb(15 98 254 / 10%);
-  --shadow-pop: 0 20px 48px -12px rgb(15 23 42 / 22%), 0 8px 16px -8px rgb(15 98 254 / 14%);
-  --scrim: rgb(15 23 42 / 40%);
+  /* ---- elevation: neutral (Gray 100) ---- */
+  --shadow-color: rgb(22 22 22 / 12%);
+  --shadow-xs: 0 1px 2px rgb(22 22 22 / 6%);
+  --shadow-card: 0 1px 2px rgb(22 22 22 / 4%), 0 4px 20px -2px rgb(22 22 22 / 8%);
+  --shadow-card-hover: 0 10px 25px -5px rgb(22 22 22 / 15%), 0 8px 10px -6px rgb(22 22 22 / 10%);
+  --shadow-pop: 0 20px 48px -12px rgb(22 22 22 / 22%), 0 8px 16px -8px rgb(22 22 22 / 14%);
+  --scrim: rgb(22 22 22 / 40%);
 
   /* logo stripes, top to bottom (docs/brand/logo-options/stripe-flame-tonal.svg) */
   --logo-1: #78a9ff;
@@ -172,33 +172,33 @@
   --logo-4: #a6c8ff;
   --logo-5: #d0e2ff;
 
-  --bg: #0a0e14;
-  --bg-header: rgb(10 14 20 / 86%);
-  --map-bg: #0c121a;
-  --halo: #111822;
+  --bg: #161616;
+  --bg-header: rgb(22 22 22 / 86%);
+  --map-bg: #161616;
+  --halo: #262626;
 
-  --panel: #111822;
-  --surface: #0d131b;
-  --surface-2: #16202b;
-  --surface-3: #1b2632;
-  --surface-4: #141d27;
-  --input-bg: #0b1118;
+  --panel: #262626;
+  --surface: #161616;
+  --surface-2: #393939;
+  --surface-3: #393939;
+  --surface-4: #262626;
+  --input-bg: #393939;
 
-  --fg: #e6edf3;
-  --fg-2: #c4d0da;
-  --fg-3: #d5dfe8;
-  --fg-4: #a8b6c2;
-  --muted: #8b9aa8;
-  --faint: #66758a;
-  --faint-2: #3d4a56;
+  --fg: #f4f4f4;
+  --fg-2: #c6c6c6;
+  --fg-3: #e0e0e0;
+  --fg-4: #a8a8a8;
+  --muted: #a8a8a8;
+  --faint: #6f6f6f;
+  --faint-2: #525252;
 
-  --border: #1f2a36;
-  --border-2: #2c3a49;
-  --border-3: #263340;
-  --border-4: #22303d;
-  --border-5: #18212b;
-  --border-6: #1c2833;
-  --border-7: #445463;
+  --border: #393939;
+  --border-2: #525252;
+  --border-3: #393939;
+  --border-4: #393939;
+  --border-5: #262626;
+  --border-6: #393939;
+  --border-7: #6f6f6f;
 
   /* Blue 40 carries the identity at rest here: ~8:1 against this ground, where Blue 60 as text
      would only reach ~4:1. Blue 60 still fills primary buttons (white text on top). */
@@ -206,7 +206,7 @@
   --accent-hi: #a6c8ff;
   --accent-deep: #0f62fe;
   --accent-fg: #a6c8ff;
-  --accent-border: #1d3f86;
+  --accent-border: #002d9c;
   --accent-soft: rgb(69 137 255 / 12%);
   --accent-soft-2: rgb(69 137 255 / 22%);
   --on-accent: #001141;
@@ -253,7 +253,7 @@
   --shadow-color: rgb(0 0 0 / 60%);
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 55%);
-  --shadow-card-hover: 0 14px 32px -10px rgb(0 0 0 / 65%), 0 0 0 1px rgb(120 169 255 / 16%);
-  --shadow-pop: 0 24px 60px -12px rgb(0 0 0 / 75%), 0 0 0 1px rgb(120 169 255 / 10%);
+  --shadow-card-hover: 0 14px 32px -10px rgb(0 0 0 / 65%), 0 0 0 1px rgb(141 141 141 / 16%);
+  --shadow-pop: 0 24px 60px -12px rgb(0 0 0 / 75%), 0 0 0 1px rgb(141 141 141 / 10%);
   --scrim: rgb(0 0 0 / 60%);
 }

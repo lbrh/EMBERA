@@ -80,7 +80,7 @@ Build status: `classification_label` supports all four values. Archive (discard)
 
 | NFR | Target | Status |
 |---|---|---|
-| NFR1 latency | Submission to severity tag ≤ 2 minutes | Not yet measured. Background classification takes about 10 s in live testing. |
+| NFR1 latency | Submission to severity tag ≤ 2 minutes | AI stage measured 28 Sep 2026 (four watsonx deployments in parallel + fire-weather lookup, 12 demo images, Melbourne → ca-tor): median 1.9 s, p90 2.4 s warm; 6.0 s cold (first call fetches the IAM token). Upload, storage and the database write are not yet timed. |
 | NFR2 severity accuracy | Precision ≥ 0.80, recall ≥ 0.75 vs a labelled test set | Not yet measured; needs retrained models and a human-checked test set. |
 | **Fire gate miss rate (pending BA)** | ≥ 98% of real fires classified Fire (≤ 2% missed) on ≥ 300 fire test images; non-fire only accepted at ≥ 0.95 confidence | **Proposed** 2026-09-24, see D-25. Current NFR2 recall of 0.75 would allow 1 in 4 fires to be dismissed. |
 | Confidence honesty | 100% of low-confidence images routed to review | Built (≤ 0.75 rule). |

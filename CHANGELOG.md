@@ -10,7 +10,7 @@ Splits EMBERA into three views, one for each kind of user, adds a public overvie
   - **Civilian** (`/civilian`): the Report a fire form for the public. Uploads are always filed as citizen reports, and the page confirms with a reference number instead of opening the coordinator's incident page.
   - **Coordinator** (`/coordinator/...`): the map, dispatch order, manual review, resolved, archive, crews and incident pages. The Submit tab is gone.
   - **Crew** (`/crew`): a crew's assignment and on-scene actions, without the coordinator's tabs or shortcuts.
-- **Overview page** (`/`): what EMBERA is, how it works, what each view does and where each page lives, with product screenshots in light and dark. Styled after IBM's product pages.
+- **Overview page** (`/`): what EMBERA is and how it works, then one person per view in the order a report travels (a resident, the coordinator, a crew leader), each with a short description, their steps and a product screenshot (light and dark). Styled after IBM's product pages.
 - **Crew log:** on the crew view, a log of everything the crew did there: status changes, fire out, false alarm, severity changes, support requests and photos. The newest change on a fire can be undone, and a severity change can be changed again.
 - **Map:** a Terrain layer (OpenTopoMap, with contours and hill shading) alongside Map and Satellite.
 - **Branding:** the striped flame logo replaces the gradient "E", in the header and as the browser-tab icon.
