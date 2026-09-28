@@ -113,11 +113,41 @@ const STACK = [
 ];
 
 const TEAM = [
-  { name: "Kayden\nHo", role: "Project Manager", body: "Kept the team on track by running sprint planning and stand-ups, managing the backlog and deadlines, and was the main point of contact with our IBM supervisors.", linkedin: "https://www.linkedin.com/in/rattanak-monin-ho-85241620b/", photo: "/team/placeholder-kh.svg" },
-  { name: "Aryaveer\nSingh", role: "Business Analyst", body: "Defined who EMBERA is for, what it needs to do and how severity is judged.", linkedin: "https://www.linkedin.com/in/aryaveer-singh-a8a3a32a7/", photo: "/team/aryaveer-singh.png" },
-  { name: "Benjamin Cosentino", role: "UX Designer", body: "Designed the coordinator's map, incident and ranking screens, and the one-click override.", linkedin: "https://www.linkedin.com/in/benjamin-cosentino-a47165308/", photo: "/team/benjamin-cosentino.png" },
-  { name: "Liam Robinson Hounsell", role: "Developer", body: "Built the ingestion pipeline, AI severity models, fire weather and spread estimates, and crew dispatch.", linkedin: "https://www.linkedin.com/in/lbrh/", photo: "/team/liam-robinson-hounsell.jpeg" },
-  { name: "Htet Myet Aung Win", role: "Developer", body: "Owns the architecture, cloud deployment and development setup.", linkedin: "https://www.linkedin.com/in/htet-myet-aung-win-359a88318/", photo: "/team/placeholder-hw.svg" },
+    {
+        name: "Kayden Ho",
+        role: "Project Manager",
+        body: "Kept the team on track by running sprint planning and stand-ups, managing the backlog and deadlines, and was the main point of contact with our IBM supervisors.",
+        linkedin: "https://www.linkedin.com/in/rattanak-monin-ho-85241620b/",
+        photo: "/team/placeholder-kh.svg",
+    },
+    {
+        name: "Aryaveer Singh",
+        role: "Business Analyst",
+        body: "Defined who EMBERA is for, what it needs to do and how severity is judged.",
+        linkedin: "https://www.linkedin.com/in/aryaveer-singh-a8a3a32a7/",
+        photo: "/team/aryaveer-singh.png",
+    },
+    {
+        name: "Benjamin Cosentino",
+        role: "UX Designer",
+        body: "Designed the coordinator's map, incident and ranking screens, and the one-click override.",
+        linkedin: "https://www.linkedin.com/in/benjamin-cosentino-a47165308/",
+        photo: "/team/benjamin-cosentino.png",
+    },
+    {
+        name: "Liam Robinson Hounsell",
+        role: "Developer",
+        body: "Built the ingestion pipeline, AI severity models, fire weather and spread estimates, and crew dispatch.",
+        linkedin: "https://www.linkedin.com/in/lbrh/",
+        photo: "/team/liam-robinson-hounsell.jpeg",
+    },
+    {
+        name: "Htet Myet Aung Win",
+        role: "Developer",
+        body: "Owns the architecture, cloud deployment and development setup.",
+        linkedin: "https://www.linkedin.com/in/htet-myet-aung-win-359a88318/",
+        photo: "/team/placeholder-hw.svg",
+    },
 ];
 
 function Arrow() {
@@ -129,11 +159,11 @@ function Arrow() {
 }
 
 function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56z" />
-    </svg>
-  );
+    return (
+        <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56z"/>
+        </svg>
+    );
 }
 
 /** The hero's right-hand art: the logo, large. */
@@ -316,64 +346,60 @@ export default function Overview() {
                     </div>
                 </section>
 
-                <section id="about" className="lp-band lp-band--muted" aria-labelledby="lp-about">
+                <section id="about" className="lp-band" aria-labelledby="lp-about">
                     <div className="lp-wrap" style={{display: "flex", flexDirection: "column", gap: "var(--space-6)"}}>
                         <h2 id="lp-about" className="lp-h2">About us</h2>
-
-                        <div className="lp-panel" style={{paddingTop: 0}}>
-                            <div>
-                                <h3 className="lp-h3" style={{marginBottom: "var(--space-3)"}}>The problem</h3>
-                                <p className="lp-lede" style={{maxWidth: "none"}}>
-                                    In a major bushfire, photos come in from many sources faster than anyone can sort them. Every minute a
-                                    coordinator spends sorting is a minute crews aren&apos;t putting out fires.
+                        <div className="lp-grid-2">
+                            <div className="lp-step">
+                                <h3 className="lp-h3">The problem</h3>
+                                <p className="lp-lede">
+                                    In a major bushfire, photos come in from many sources faster than anyone can sort
+                                    them. Every minute a coordinator spends sorting is a minute crews aren&apos;t putting
+                                    out fires.
                                 </p>
                             </div>
-
-                            <div>
-                                <h3 className="lp-h3" style={{marginBottom: "var(--space-3)"}}>Our solution</h3>
-                                <p className="lp-lede" style={{maxWidth: "none", marginBottom: "var(--space-3)"}}>
-                                    We help bushfire coordinators get crews to the fires that matter most, sooner. Our goal is for them to
-                                    spend less time sorting information and more time making decisions.
+                            <div className="lp-step">
+                                <h3 className="lp-h3">Our solution</h3>
+                                <p className="lp-lede">
+                                    We help bushfire coordinators get crews to the fires that matter most, sooner, so
+                                    they spend less time sorting information and more time making decisions.
                                 </p>
-                                <p className="lp-lede" style={{maxWidth: "none"}}>
-                                    That&apos;s why we built EMBERA. It turns incoming photos into a live map of fires ranked by urgency.
-                                    Each ranking comes with its reason and an estimate of how the fire could spread. The coordinator makes
-                                    the final call and can overrule any ranking.
+                                <p className="lp-body">
+                                    That&apos;s why we built EMBERA. It turns incoming photos into a live map of fires
+                                    ranked by urgency. Each ranking comes with its reason and an estimate of how the
+                                    fire could spread. The coordinator makes the final call and can overrule any
+                                    ranking.
                                 </p>
                             </div>
                         </div>
+                    </div>
+                </section>
 
-                        <div>
-                            <h3 className="lp-h3" style={{marginBottom: "var(--space-3)"}}>The team</h3>
-                            <p className="lp-body" style={{marginBottom: "var(--space-3)"}}>
-                                EMBERA is a 12-week capstone project built for IBM by Team 8. Our supervisors are Naresh Olladapu and Emily
-                                Chin.
+                <section className="lp-band lp-band--muted" aria-labelledby="lp-team">
+                    <div className="lp-wrap" style={{display: "flex", flexDirection: "column", gap: "var(--space-6)"}}>
+                        <div style={{display: "flex", flexDirection: "column", gap: "var(--space-3)"}}>
+                            <h2 id="lp-team" className="lp-h2">The team</h2>
+                            <p className="lp-lede" style={{maxWidth: "none"}}>
+                                EMBERA is a 12-week capstone project built for IBM by Team 8. Our supervisors are
+                                Naresh Olladapu and Emily Chin.
                             </p>
-                            <div className="lp-tiles lp-tiles--team">
-                                {TEAM.map((t, i) => {
-                                    const flatName = t.name.replace("\n", " ");
-                                    return (
-                                        <article key={`${flatName}-${i}`} className="lp-tile lp-tile--team">
-                                            <img src={t.photo} alt={flatName} className="lp-team-photo"/>
-                                            <span className="lp-tag">{t.role}</span>
-                                            <div className="lp-team-name">
-                                                <h4 className="lp-h3" style={{whiteSpace: "pre-line"}}>{t.name}</h4>
-                                                <a
-                                                    href={t.linkedin}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="lp-linkedin"
-                                                    aria-label={`${flatName} on LinkedIn`}
-                                                >
-                                                    <LinkedInIcon/>
-                                                </a>
-                                            </div>
-                                            <p className="lp-body">{t.body}</p>
-                                        </article>
-                                    );
-                                })}
-                            </div>
                         </div>
+                        <ul className="lp-team">
+                            {TEAM.map((t) => (
+                                <li key={t.name} className="lp-member">
+                                    <Image src={t.photo} alt={t.name} width={256} height={256}
+                                           sizes="(max-width: 671px) 50vw, (max-width: 1055px) 33vw, 256px"
+                                           className="lp-member__photo"/>
+                                    <span className="lp-tag">{t.role}</span>
+                                    <h3 className="lp-h3">{t.name}</h3>
+                                    <p className="lp-body">{t.body}</p>
+                                    <a href={t.linkedin} target="_blank" rel="noopener noreferrer"
+                                       className="lp-link lp-member__link" aria-label={`${t.name} on LinkedIn`}>
+                                        <LinkedInIcon/> LinkedIn
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </section>
 

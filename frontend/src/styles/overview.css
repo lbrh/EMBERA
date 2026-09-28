@@ -334,50 +334,51 @@
   font: 400 12px / 1.4 var(--font-plex-mono);
 }
 
-.lp-tiles--team {
+.lp-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+/* ---------- team: flat square portraits, like the personas ---------- */
+
+.lp-team {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-5);
 }
 
-.lp-tile--team {
-  min-height: 380px;
+.lp-member {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.lp-team-photo {
-  align-self: center;
+.lp-member__photo {
+  display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  background: var(--surface);
-  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  margin-bottom: var(--space-2);
 }
 
-.lp-team-name {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+/* pinned to the bottom so the links line up across the row */
+.lp-member__link {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
-.lp-linkedin {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: #0a66c2;
-  border-radius: 6px;
-  color: #fff;
-}
-
-.lp-linkedin svg {
-  width: 22px;
-  height: 22px;
+.lp-member__link svg {
+  width: 16px;
+  height: 16px;
   fill: currentColor;
-}
-
-.lp-linkedin:hover {
-  background: #004182;
 }
 
 .lp-footer {
@@ -418,6 +419,10 @@
   .lp-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .lp-team {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 671px) {
@@ -439,8 +444,13 @@
   }
 
   .lp-grid-4,
+  .lp-grid-2,
   .lp-tiles {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-team {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .lp-tile {
