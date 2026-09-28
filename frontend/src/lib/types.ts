@@ -92,7 +92,7 @@ export interface ApiIncidentRecord {
 /** Mirrors backend FireWeather (backend/src/metadata/metadata.types.ts). */
 export interface FireWeather {
   observedAt: string;
-  fetchedAt?: string; // when the backend looked it up; refreshed every ~30 min while the incident is open
+  fetchedAt?: string; // when the backend looked it up; refreshed every ~10 min while the incident is open
   temperatureC: number;
   humidityPct: number;
   windKmh: number;

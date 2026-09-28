@@ -49,7 +49,7 @@ const server = app.listen(port, () => {
 
 // Live weather for open incidents (station wind + forecast). 0 turns it off, e.g. to keep the demo
 // seed's fixed weather.
-const weatherRefreshMinutes = Number(process.env.WEATHER_REFRESH_MINUTES ?? 30);
+const weatherRefreshMinutes = Number(process.env.WEATHER_REFRESH_MINUTES ?? 10);
 if (weatherRefreshMinutes > 0) startWeatherRefresh(weatherRefreshMinutes);
 
 // Code Engine sends SIGTERM on scale-down; finish in-flight requests instead of
