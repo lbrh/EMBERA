@@ -1,6 +1,7 @@
 "use client";
 
 import type {ReactNode} from "react";
+import {useRouter} from "next/navigation";
 import type {Incident, SeverityBand} from "@/lib/types";
 import {CONFIDENCE_THRESHOLD, SEVERITY, SEVERITY_ORDER, bandFromSum} from "@/lib/constants/severity";
 import {HatchBanner} from "@/components/primitives/HatchBanner";
@@ -23,6 +24,7 @@ const HEADLINE: Record<string, string> = {
 };
 
 export function ReviewPane({incident}: { incident: Incident }) {
+    const router = useRouter();
     const confirmReview = useIncidentStore((s) => s.confirmReview);
     const changeReview = useIncidentStore((s) => s.changeReview);
     const discardReview = useIncidentStore((s) => s.discardReview);
@@ -241,7 +243,6 @@ export function ReviewPane({incident}: { incident: Incident }) {
 
                     {/* ponytail: "Request second image" removed until there's a camera/drone integration to ask */}
                     <div style={{display: "flex", gap: "var(--space-2)", flexWrap: "wrap"}}>
-                        <Button variant="secondary">Request second image</Button>
                         <Button
                             variant="secondary"
                             onClick={() => {

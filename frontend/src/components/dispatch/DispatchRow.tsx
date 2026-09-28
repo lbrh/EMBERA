@@ -15,7 +15,6 @@ import { AssignedCrews } from "@/components/dispatch/AssignedCrews";
 export function DispatchRow({ incident, rank }: { incident: Incident; rank: number | null }) {
   const router = useRouter();
   const tick = useIncidentStore((s) => s.clockTick);
-  const dispatchCrew = useIncidentStore((s) => s.dispatchCrew);
   const openCrewPicker = useIncidentStore((s) => s.openCrewPicker);
   const isLive = incident.dispatch === "live";
   const isNext = rank === 1;
@@ -81,13 +80,10 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
         </span>
       </div>
       <span className="dr-reason" style={{ font: "400 var(--text-sm)/1.5 var(--font-plex-sans)", color: "var(--fg-2)" }}>
-        {isLive
-          ? "Crew assigned. Stays live until the crew reports the fire out."
-          : incident.recommendedAction ?? "Ranked by severity."}
         {isLive ? (
           <AssignedCrews incidentId={incident.id} />
         ) : (
-          incident.recommendedAction ?? "Ranked by severity, then distance from staging."
+          incident.recommendedAction ?? "Ranked by severity."
         )}
       </span>
       <div className="dr-metrics">
@@ -104,8 +100,6 @@ export function DispatchRow({ incident, rank }: { incident: Incident; rank: numb
       <div className="dr-action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} style={{ justifySelf: "end" }}>
         {/* only crews close a fire (Crew tab); the coordinator can send more help */}
         {isLive ? (
-          <Button variant="secondary" small onClick={() => router.push(`/incident/${incident.id}`)}>
-            Open
           <Button variant="secondary" small onClick={() => openCrewPicker(incident.id)}>
             Add crew
           </Button>
