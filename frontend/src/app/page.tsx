@@ -118,7 +118,7 @@ const TEAM = [
         role: "Project Manager",
         body: "Kept the team on track by running sprint planning and stand-ups, managing the backlog and deadlines, and was the main point of contact with our IBM supervisors.",
         linkedin: "https://www.linkedin.com/in/rattanak-monin-ho-85241620b/",
-        photo: "/team/placeholder-kh.svg",
+        photo: "/team/kayden-ho.jpg",
     },
     {
         name: "Aryaveer Singh",
@@ -146,7 +146,7 @@ const TEAM = [
         role: "Developer",
         body: "Owns the architecture, cloud deployment and development setup.",
         linkedin: "https://www.linkedin.com/in/htet-myet-aung-win-359a88318/",
-        photo: "/team/placeholder-hw.svg",
+        photo: "/team/htet-myet-aung-win.jpg",
     },
 ];
 
