@@ -116,7 +116,7 @@ const TEAM = [
   { name: "Kayden\nHo", role: "Project Manager", body: "Kept the team on track by running sprint planning and stand-ups, managing the backlog and deadlines, and was the main point of contact with our IBM supervisors.", linkedin: "https://www.linkedin.com/in/rattanak-monin-ho-85241620b/", photo: "/team/placeholder-kh.svg" },
   { name: "Aryaveer\nSingh", role: "Business Analyst", body: "Defined who EMBERA is for, what it needs to do and how severity is judged.", linkedin: "https://www.linkedin.com/in/aryaveer-singh-a8a3a32a7/", photo: "/team/aryaveer-singh.png" },
   { name: "Benjamin Cosentino", role: "UX Designer", body: "Designed the coordinator's map, incident and ranking screens, and the one-click override.", linkedin: "https://www.linkedin.com/in/benjamin-cosentino-a47165308/", photo: "/team/benjamin-cosentino.png" },
-  { name: "Liam Robinson Hounsell", role: "Developer", body: "Built the ingestion pipeline, AI severity models, fire weather and spread estimates, and crew dispatch.", linkedin: "https://www.linkedin.com/in/lbrh/", photo: "/team/liam-robinson-hounsell.jpg" },
+  { name: "Liam Robinson Hounsell", role: "Developer", body: "Built the ingestion pipeline, AI severity models, fire weather and spread estimates, and crew dispatch.", linkedin: "https://www.linkedin.com/in/lbrh/", photo: "/team/liam-robinson-hounsell.jpeg" },
   { name: "Htet Myet Aung Win", role: "Developer", body: "Owns the architecture, cloud deployment and development setup.", linkedin: "https://www.linkedin.com/in/htet-myet-aung-win-359a88318/", photo: "/team/placeholder-hw.svg" },
 ];
 
