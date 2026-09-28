@@ -56,13 +56,15 @@ test('a dispatch names 1-10 distinct crews and who sent them', () => {
     }
 });
 
-test('a crew moves forward one step at a time and can be cleared until it is', () => {
+test('a crew moves one step at a time, forward or back (undo), and can be cleared until it is', () => {
     assert.equal(canMoveAssignment('dispatched', 'en_route'), true);
     assert.equal(canMoveAssignment('en_route', 'on_scene'), true);
     assert.equal(canMoveAssignment('on_scene', 'cleared'), true);
     assert.equal(canMoveAssignment('dispatched', 'cleared'), true);
     assert.equal(canMoveAssignment('dispatched', 'on_scene'), false, 'no skipping en route');
-    assert.equal(canMoveAssignment('on_scene', 'en_route'), false, 'no going backwards');
+    assert.equal(canMoveAssignment('on_scene', 'en_route'), true, 'one step back undoes on scene');
+    assert.equal(canMoveAssignment('en_route', 'dispatched'), true, 'one step back undoes en route');
+    assert.equal(canMoveAssignment('on_scene', 'dispatched'), false, 'no skipping back two steps');
     assert.equal(canMoveAssignment('cleared', 'dispatched'), false, 'a cleared assignment is finished');
 });
 

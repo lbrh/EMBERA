@@ -72,7 +72,7 @@ Build status: `classification_label` supports all four values. Archive (discard)
 
 ## 5. Manual review and override
 
-- Reviewer sees the image, the AI's provisional tag, its confidence and the reason for flagging (which indicator was weakest).
+- Reviewer sees the image, the AI's provisional tag, its confidence and the reason for flagging.
 - Reviewer can confirm the tag, change the severity and promote to an incident, or discard as not a fire (→ Archive).
 - Override: immediate, no confirmation click, undo available, non-blocking toast top right for about 5 s. Logged with original tag, new value, who and when. The AI's original `severity_score` is never overwritten; the override lives in `severity_score_override`.
 
@@ -80,7 +80,7 @@ Build status: `classification_label` supports all four values. Archive (discard)
 
 | NFR | Target | Status |
 |---|---|---|
-| NFR1 latency | Submission to severity tag ≤ 2 minutes | Not yet measured. Background classification takes about 10 s in live testing. |
+| NFR1 latency | Submission to severity tag ≤ 2 minutes | AI stage measured 28 Sep 2026 (four watsonx deployments in parallel + fire-weather lookup, 12 demo images, Melbourne → ca-tor): median 1.9 s, p90 2.4 s warm; 6.0 s cold (first call fetches the IAM token). Upload, storage and the database write are not yet timed. |
 | NFR2 severity accuracy | Precision ≥ 0.80, recall ≥ 0.75 vs a labelled test set | Not yet measured; needs retrained models and a human-checked test set. |
 | **Fire gate miss rate (pending BA)** | ≥ 98% of real fires classified Fire (≤ 2% missed) on ≥ 300 fire test images; non-fire only accepted at ≥ 0.95 confidence | **Proposed** 2026-09-24, see D-25. Current NFR2 recall of 0.75 would allow 1 in 4 fires to be dismissed. |
 | Confidence honesty | 100% of low-confidence images routed to review | Built (≤ 0.75 rule). |
@@ -88,7 +88,7 @@ Build status: `classification_label` supports all four values. Archive (discard)
 | Map clarity | Zero overlapping markers at default zoom | Not built. |
 | No data loss | Nothing lost between submission and storage | Record written before upload; failed uploads kept with `ingestion_error`. |
 | Load tolerance | Survive a spike of simultaneous submissions | Grouping is locked against races; rate limit 600 reads + 60 writes per minute per caller and client IP (D-29). |
-| Graceful degradation | Clear error rather than silent failure | Classification failures leave the record in `pending_review` and are logged. |
+| Graceful degradation | Clear error rather than silent failure | Classification failures move the record to `unable_to_assess` (manual review) and are logged. An assessment killed mid-flight is swept there after 10 min. |
 
 All targets are team-proposed and not client-confirmed.
 

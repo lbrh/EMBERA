@@ -1,7 +1,7 @@
 import type { SourceType } from "@/lib/types";
 import { OPERATING_REGION } from "@/lib/utils/geo";
 
-// Checks for the Submit image form, kept out of the page so they can be tested on their own.
+// Checks for the Report a fire form, kept out of the page so they can be tested on their own.
 
 export interface FormState {
   file: File | null;
@@ -31,11 +31,11 @@ export function toLocalInput(date: Date): string {
 /** Every problem with the form, keyed by field; empty when it can be sent. Blank geotag/time is
  * allowed: the backend reads them from the image's EXIF and rejects the upload if they're missing
  * there too. Bounds and limits mirror the backend's own checks so a rejection there is rare. */
-export function validate(form: FormState, isDemo: boolean, now = new Date()): FieldErrors {
+export function validate(form: FormState, now = new Date()): FieldErrors {
   const errors: FieldErrors = {};
 
   if (!form.file) {
-    if (!isDemo) errors.file = "Attach an image to submit.";
+    errors.file = "Attach an image to submit.";
   } else if (!IMAGE_TYPES.includes(form.file.type) && !/\.(jpe?g|png)$/i.test(form.file.name)) {
     errors.file = "Only JPEG or PNG images can be assessed.";
   } else if (form.file.size === 0) {

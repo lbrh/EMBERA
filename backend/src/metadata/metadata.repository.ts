@@ -179,6 +179,20 @@ export async function withTryLock<T>(key: number, fn: () => Promise<T>): Promise
     }
 }
 
+// AI assessment runs in the background after /ingest returns, so a deploy or scale-down can kill it
+// mid-flight and leave the image in pending_review ("AI assessing…") for good. Anything still
+// pending this long after upload is sent to manual review. Returns how many were moved.
+export async function expireStalePendingAssessments(olderThanMinutes: number): Promise<number> {
+    const { rowCount } = await pool.query(
+        `UPDATE images
+         SET assessment_status = 'unable_to_assess',
+             severity_explanation = COALESCE(severity_explanation, 'AI assessment did not finish. Routed for manual review.')
+         WHERE assessment_status = 'pending_review' AND created_at < now() - make_interval(mins => $1)`,
+        [olderThanMinutes],
+    );
+    return rowCount ?? 0;
+}
+
 // The newest image of every incident still open (not extinguished or archived) that isn't a
 // dismissed non-fire: what the live weather refresh looks after.
 export async function findOpenIncidentLatestImages(): Promise<ImageMetadata[]> {
@@ -497,10 +511,11 @@ export async function findComments(incidentId: string): Promise<Comment[]> {
 // A request that clashes with the current state, e.g. a crew that's already on another incident.
 export class ConflictError extends Error {}
 
+// One step forward, or one step back so a crew can undo a status it set by mistake.
 const NEXT_STATUS: Record<AssignmentStatus, AssignmentStatus[]> = {
     dispatched: ['en_route', 'cleared'],
-    en_route: ['on_scene', 'cleared'],
-    on_scene: ['cleared'],
+    en_route: ['on_scene', 'dispatched', 'cleared'],
+    on_scene: ['en_route', 'cleared'],
     cleared: [],
 };
 

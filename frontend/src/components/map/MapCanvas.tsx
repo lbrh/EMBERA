@@ -30,7 +30,7 @@ const CLUSTER_THRESHOLD_PX = { 1: 64, 2: 0, 3: 0 } as const; // screen px; 0 dis
 const MAX_ZOOM = 19;
 const INITIAL_MAX_ZOOM = 12;
 
-export type BaseLayerId = "street" | "satellite";
+export type BaseLayerId = "street" | "satellite" | "terrain";
 
 const BASE_LAYERS: Record<BaseLayerId, { url: string; attribution: string; maxZoom: number }> = {
   street: {
@@ -42,6 +42,13 @@ const BASE_LAYERS: Record<BaseLayerId, { url: string; attribution: string; maxZo
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS community",
     maxZoom: MAX_ZOOM,
+  },
+  // contours + hillshade: slope and aspect drive how fast a fire runs uphill
+  terrain: {
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution:
+      'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM &mdash; Style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+    maxZoom: 17,
   },
 };
 
@@ -360,7 +367,7 @@ export function MapCanvas() {
           riseOnHover: true,
           zIndexOffset: (incident.band as number) * 100,
         })
-          .on("click", () => router.push(`/incident/${incident.id}`))
+          .on("click", () => router.push(`/coordinator/incident/${incident.id}`))
           .addTo(layer);
         marker.getElement()?.setAttribute("aria-label", `${label}, ${SEVERITY[incident.band as SeverityBand].label}`);
         if (incident.id === newIncidentId) marker.getElement()?.classList.add("is-new");
@@ -478,7 +485,7 @@ export function MapCanvas() {
     })
       .on("click", () => {
         selectReview(focusUnderReview.id);
-        router.push("/review");
+        router.push("/coordinator/review");
       })
       .addTo(layer);
     marker.getElement()?.setAttribute("aria-label", `${focusUnderReview.place}, under review. Open in manual review`);
@@ -563,7 +570,7 @@ export function MapCanvas() {
             className="btn btn--link btn--sm"
             onClick={() => {
               selectReview(focusUnderReview.id);
-              router.push("/review");
+              router.push("/coordinator/review");
             }}
           >
             Back to review

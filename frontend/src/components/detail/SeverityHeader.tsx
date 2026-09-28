@@ -18,6 +18,7 @@ const PROVENANCE_TEXT: Record<Incident["provenance"], (i: Incident) => string> =
 export function SeverityHeader({ incident }: { incident: Incident }) {
   const band = incident.band;
   const tint = band ? `var(--sev${band}-tint)` : "var(--accent-soft)";
+  const assessing = incident.reviewReason === "ai_assessing";
   return (
     <div
       className="sev-header"
@@ -38,11 +39,17 @@ export function SeverityHeader({ incident }: { incident: Incident }) {
             color: band ? SEVERITY[band].ringVar : "var(--accent-fg)",
           }}
         >
-          {band ? SEVERITY[band].label : "Flagged for manual review"}
+          {band ? SEVERITY[band].label : assessing ? "AI assessing…" : "Flagged for manual review"}
         </h1>
-        <p className="caption">{band === 0 ? PROVENANCE_TEXT.none(incident) : PROVENANCE_TEXT[incident.provenance](incident)}</p>
+        <p className="caption">
+          {assessing
+            ? "The AI is still scoring this image. Severity appears here when it's done."
+            : band === 0
+              ? PROVENANCE_TEXT.none(incident)
+              : PROVENANCE_TEXT[incident.provenance](incident)}
+        </p>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)", marginTop: 2 }}>
-          <StatusFlagChip flag={incident.flag} dispatch={incident.dispatch} />
+          <StatusFlagChip flag={incident.flag} dispatch={incident.dispatch} assessing={assessing} />
           <SourceChip source={incident.source} />
         </div>
       </div>

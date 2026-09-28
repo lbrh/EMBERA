@@ -199,7 +199,7 @@ test('crews are dispatched, recalled and freed when the incident is extinguished
         assert.equal(res.status, 409);
         assert.equal(await dispatchState(second.incidentId), null);
 
-        // steps go forward only
+        // no skipping a step
         const assignmentA = (await assignmentOf(a)).assignmentId;
         assert.equal((await fetch(`${url}/assignments/${assignmentA}`, json('PATCH', { status: 'on_scene', by: 'Crew' }))).status, 409);
         assert.equal((await fetch(`${url}/assignments/${assignmentA}`, json('PATCH', { status: 'en_route', by: 'Crew' }))).status, 200);

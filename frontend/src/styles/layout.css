@@ -67,8 +67,7 @@
 }
 
 .nav-tab__icon,
-.nav-tab__short,
-.app-theme-btn {
+.nav-tab__short {
   display: none;
 }
 
@@ -85,16 +84,6 @@
 
   .nav-tab__short {
     display: inline;
-  }
-}
-
-@media (max-width: 1023px) {
-  .app-theme-seg {
-    display: none;
-  }
-
-  .app-theme-btn {
-    display: inline-flex;
   }
 }
 
@@ -148,7 +137,7 @@
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     overflow: visible;
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     background: var(--panel);
@@ -866,7 +855,20 @@
   }
 }
 
-/* ---------- submit image ---------- */
+/* ---------- report a fire ---------- */
+
+/* A small text link with a fingertip-sized hit area (about 37px tall) that doesn't move the layout.
+   It stops 8px short of the field above so it never takes that field's taps. */
+.tap-link {
+  position: relative;
+}
+
+.tap-link::after {
+  content: "";
+  position: absolute;
+  inset: -8px -6px -16px;
+}
+
 
 .submit-grid {
   display: grid;

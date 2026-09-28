@@ -8,7 +8,8 @@ import { THEME_BOOT_SCRIPT } from "@/lib/constants/theme";
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // 300 is the overview page's display weight
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -18,7 +19,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EMBERA | Bushfire situational awareness",
+  // no title here: each view renders its own <title>, and a metadata one would win over it
   description:
     "AI-assisted bushfire severity classification and dispatch coordination.",
 };

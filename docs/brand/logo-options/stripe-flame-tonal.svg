@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="EMBERA">
+  <clipPath id="flame"><path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z"/></clipPath>
+  <g clip-path="url(#flame)">
+    <rect y="3" width="32" height="2.25" fill="#78a9ff"/>
+    <rect y="6.5" width="32" height="2.25" fill="#4589ff"/>
+    <rect y="10" width="32" height="2.25" fill="#4589ff"/>
+    <rect y="13.5" width="32" height="2.25" fill="#0f62fe"/>
+    <rect y="17" width="32" height="2.25" fill="#0f62fe"/>
+    <rect y="20.5" width="32" height="2.25" fill="#0043ce"/>
+    <rect y="24" width="32" height="2.25" fill="#0043ce"/>
+    <rect y="27.5" width="32" height="2.25" fill="#002d9c"/>
+  </g>
+</svg>

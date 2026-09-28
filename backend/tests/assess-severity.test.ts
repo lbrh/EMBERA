@@ -89,15 +89,29 @@ test('smoke or flame at 2-4 (either one) is a fire; neither goes to manual revie
 
 test('a weather refresh re-applies fire danger to the stored readings and keeps the review note', () => {
     const scored = assessSeverity({ ...moderateFire, weather: weather(10) }); // severity 2
-    const stored = { ...scored, severityExplanation: `${scored.severityExplanation} Routed for manual review — lowest confidence on smokeDensity (0.7).` };
+    const stored = { ...scored, severityExplanation: `${scored.severityExplanation} Routed for manual review — smoke/flame confidence 0.7.` };
 
     const worse = reassessForWeather(stored as never, weather(80));
     assert.equal(worse.severityScore, 3);
-    assert.match(worse.severityExplanation!, /raised from 2 to 3\. Routed for manual review — lowest confidence/);
+    assert.match(worse.severityExplanation!, /raised from 2 to 3\. Routed for manual review — smoke\/flame confidence/);
 
     const calmer = reassessForWeather({ ...stored, severityScore: 3 } as never, weather(10));
     assert.equal(calmer.severityScore, 2);
 
     const unscored = reassessForWeather({ ...stored, severityScore: null } as never, weather(80));
     assert.deepEqual([unscored.severityScore, unscored.weather?.ffdi], [null, 80]);
+});
+
+test('confidence is the mean of smoke and flame; vegetation and infrastructure do not count', () => {
+    const result = assessSeverity({
+        ...moderateFire,
+        confidences: { smokeDensity: 0.9, flameVisibility: 0.7, vegetationImpact: 0.1, infrastructureImpact: 0.1 },
+    });
+    assert.equal(result.confidenceScore, 0.8);
+    assert.equal(result.assessmentStatus, 'assessed');
+
+    const low = assessSeverity({ ...moderateFire, confidences: { ...moderateFire.confidences, smokeDensity: 0.8, flameVisibility: 0.7 } });
+    assert.equal(low.confidenceScore, 0.75); // exactly at the threshold -> review
+    assert.equal(low.assessmentStatus, 'unable_to_assess');
+    assert.match(low.severityExplanation!, /smoke\/flame confidence 0\.75/);
 });

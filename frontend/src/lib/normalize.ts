@@ -142,7 +142,9 @@ export function normalizeIncident(
     reviewReason:
       flag !== "flagged_review"
         ? null
-        : record.classificationLabelOverride === "uncertain"
+        : record.assessmentStatus === "pending_review"
+          ? "ai_assessing"
+          : record.classificationLabelOverride === "uncertain"
           ? "restored_not_fire"
           : record.classificationLabel === "uncertain" && elements.smoke === 1 && elements.flame === 1
             ? "no_fire_detected"

@@ -85,7 +85,7 @@ function PickerForm({ incident, onDone }: { incident: Incident; onDone: () => vo
           ) : (
             <>
               Every crew is out. Recall one from another fire on the{" "}
-              <Link href="/crews" onClick={onDone}>
+              <Link href="/coordinator/crews" onClick={onDone}>
                 Crews page
               </Link>
               .
@@ -120,7 +120,7 @@ function PickerForm({ incident, onDone }: { incident: Incident; onDone: () => vo
       {busy > 0 ? (
         <p className="caption">
           {busy} {busy === 1 ? "crew is" : "crews are"} already out on other incidents.{" "}
-          <Link href="/crews" onClick={onDone}>
+          <Link href="/coordinator/crews" onClick={onDone}>
             See all crews
           </Link>
         </p>

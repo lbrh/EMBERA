@@ -58,6 +58,9 @@ ALTER TABLE images ADD CONSTRAINT images_classification_label_override_check CHE
 -- Human place name for the image's coordinates (reverse geocoded after ingest). Re-runnable.
 ALTER TABLE images ADD COLUMN IF NOT EXISTS place_name TEXT;
 ALTER TABLE images ADD COLUMN IF NOT EXISTS weather JSONB;
+-- When the row was written (the "timestamp" column is capture time, from EXIF or the client).
+-- Rows that predate it get the migration time. Not in ImageMetadata: only the stale-assessment sweep reads it.
+ALTER TABLE images ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- Dispatch state is per incident, not per image. No row = not yet acted on.
 CREATE TABLE IF NOT EXISTS incident_dispatch (

@@ -28,7 +28,7 @@ export function RankedIncidentRow({ incident }: { incident: Incident }) {
     <button
       type="button"
       className="row-btn rail-row"
-      onClick={() => router.push(`/incident/${incident.id}`)}
+      onClick={() => router.push(`/coordinator/incident/${incident.id}`)}
       // highlights this incident's marker on the map (and vice versa)
       onMouseEnter={() => setMapHoverId(incident.id)}
       onMouseLeave={() => setMapHoverId(null)}
@@ -66,7 +66,7 @@ export function RankedIncidentRow({ incident }: { incident: Incident }) {
             {incident.place}
           </span>
           <span style={{ display: "flex", gap: "var(--space-1)", flex: "none" }}>
-            {incident.dispatch !== "awaiting" ? <StatusFlagChip flag={incident.flag} dispatch={incident.dispatch} /> : null}
+            {incident.dispatch !== "awaiting" ? <StatusFlagChip flag={incident.flag} dispatch={incident.dispatch} assessing={incident.reviewReason === "ai_assessing"} /> : null}
             <SeverityChip band={incident.band} />
           </span>
         </div>

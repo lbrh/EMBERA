@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIncidentStore } from "@/lib/store/useIncidentStore";
@@ -9,18 +9,15 @@ import { TABS, type TabHref } from "@/lib/constants/nav";
 
 // Tab icons, shown only in the phone's bottom tab bar (layout.css), where labels are too short to scan alone.
 const TAB_ICONS: Record<TabHref, string> = {
-  "/": "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
-  "/dispatch": "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
-  "/review": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01",
-  "/resolved": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
-  "/archive": "M3 5h18v4H3zM5 9v10h14V9M10 13h4",
-  "/submit": "M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
-  "/crews": "M4 17h2m12 0h2M3 13l2-6h9l3 4h3v6H3zM7.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 7v4",
+  "/coordinator": "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
+  "/coordinator/dispatch": "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
+  "/coordinator/review": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01",
+  "/coordinator/resolved": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12l3 3 5-6",
+  "/coordinator/archive": "M3 5h18v4H3zM5 9v10h14V9M10 13h4",
+  "/coordinator/crews": "M4 17h2m12 0h2M3 13l2-6h9l3 4h3v6H3zM7.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16.5 19.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 7v4",
 };
 
 export function Header() {
-  const theme = useIncidentStore((s) => s.theme);
-  const toggleTheme = useIncidentStore((s) => s.toggleTheme);
   const keysOpen = useIncidentStore((s) => s.keysOpen);
   const setKeysOpen = useIncidentStore((s) => s.setKeysOpen);
   const incidents = useIncidentStore((s) => s.incidents);
@@ -32,8 +29,9 @@ export function Header() {
   const pathname = usePathname();
   // Incident Detail is reached by click-through, not a tab: whichever tab the user came from
   // stays marked as current there.
-  // The crew view (/crew) belongs to the Crews tab.
-  const activeHref = pathname?.startsWith("/incident/") ? lastTabPath : pathname === "/crew" ? "/crews" : pathname;
+  const onIncident = pathname?.startsWith("/coordinator/incident/");
+  const activeHref = onIncident ? lastTabPath : pathname;
+  const tabLabel = TABS.find((t) => t.href === pathname)?.label;
 
   const [now, setNow] = useState<string | null>(null);
   useEffect(() => {
@@ -46,35 +44,9 @@ export function Header() {
 
   return (
     <header className="app-header">
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }} aria-label="EMBERA home, map">
-        <span
-          aria-hidden
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "var(--radius-md)",
-            background: "var(--grad-primary)",
-            boxShadow: "var(--shadow-btn)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            font: "700 15px/1 var(--font-plex-sans)",
-            color: "var(--on-primary)",
-          }}
-        >
-          E
-        </span>
-        <span
-          className="app-brand__word"
-          style={{
-            font: "700 var(--text-base)/1 var(--font-plex-sans)",
-            letterSpacing: "var(--tracking-tight)",
-            color: "var(--fg)",
-          }}
-        >
-          EMBERA
-        </span>
-      </Link>
+      {/* React hoists this into <head>; incident detail sets its own */}
+      {!onIncident && tabLabel ? <title>{`${tabLabel} · Coordinator · EMBERA`}</title> : null}
+      <Brand />
 
       {/* one nav for every width: a top tab row, or the bottom tab bar on a phone (layout.css) */}
       <nav aria-label="Screens" className="app-nav">
@@ -111,7 +83,7 @@ export function Header() {
                     padding: "0 7px",
                     fontSize: 11,
                     color: "var(--on-primary)",
-                    background: "var(--grad-primary)",
+                    background: "var(--primary)",
                   }}
                 >
                   {flaggedCount}
@@ -153,26 +125,6 @@ export function Header() {
           ?
         </button>
 
-        <div className="seg app-theme-seg" role="group" aria-label="Colour theme">
-          <button type="button" className="seg__btn" aria-pressed={theme === "light"} onClick={() => theme !== "light" && toggleTheme()}>
-            Light
-          </button>
-          <button type="button" className="seg__btn" aria-pressed={theme === "dark"} onClick={() => theme !== "dark" && toggleTheme()}>
-            Dark
-          </button>
-        </div>
-        {/* below 1024px the Light / Dark pair folds into one toggle */}
-        <button
-          type="button"
-          className="icon-btn app-theme-btn"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
-            <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor" />
-          </svg>
-        </button>
 
         <span
           className="app-avatar"
@@ -194,6 +146,59 @@ export function Header() {
           EC
         </span>
       </div>
+    </header>
+  );
+}
+
+// The tonal stripe flame (docs/brand/logo-options/stripe-flame-tonal.svg): each stripe's tone, top to
+// bottom. Colours are theme tokens (--logo-1..5), so dark mode flips the fade.
+const LOGO_TONES = [1, 2, 2, 3, 3, 4, 4, 5];
+
+export function LogoMark({ size = 28 }: { size?: number }) {
+  const clipId = `logo-${useId().replace(/[^\w-]/g, "")}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden style={{ flex: "none" }}>
+      <clipPath id={clipId}>
+        <path d="M18 2C19 7 25 11 25 20A9 9 0 0 1 7 20C7 15.5 8.5 12 10 9C10.5 12 11.5 14 13.5 15.5C12.5 10 14 5.5 18 2Z" />
+      </clipPath>
+      <g clipPath={`url(#${clipId})`}>
+        {LOGO_TONES.map((tone, i) => (
+          <rect key={i} y={3 + i * 3.5} width={32} height={2.25} fill={`var(--logo-${tone})`} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/** Always goes to the overview (/), whichever view it sits in. */
+function Brand() {
+  return (
+    <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }} aria-label="EMBERA home">
+      <LogoMark />
+      <span
+        className="app-brand__word"
+        style={{
+          font: "700 var(--text-base)/1 var(--font-plex-sans)",
+          letterSpacing: "var(--tracking-tight)",
+          color: "var(--fg)",
+        }}
+      >
+        EMBERA
+      </span>
+    </Link>
+  );
+}
+
+/** The overview, civilian and crew screens: brand and which view this is. No tabs. */
+export function SimpleHeader({ view, children, title = `${view} · EMBERA` }: { view: string; children?: ReactNode; title?: string }) {
+  return (
+    <header className="app-header">
+      <title>{title}</title>
+      <Brand />
+      <span className="caption" style={{ borderLeft: "1px solid var(--border)", paddingLeft: "var(--space-3)" }}>
+        {view}
+      </span>
+      {children ? <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-5)" }}>{children}</div> : null}
     </header>
   );
 }

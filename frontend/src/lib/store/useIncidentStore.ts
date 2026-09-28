@@ -4,13 +4,14 @@ import { create } from "zustand";
 import { currentActor, dataSource, getSeedDecisionLog, getSeedGroup, useMock } from "@/lib/data-source";
 import type { SubmitImagePayload } from "@/lib/data-source";
 import { SEVERITY, bandFromSum } from "@/lib/constants/severity";
-import { THEME_STORAGE_KEY } from "@/lib/constants/theme";
-import { crewAsk } from "@/lib/constants/crews";
+import { ASSIGNMENT_LABEL, crewAsk } from "@/lib/constants/crews";
 import { ARCHIVED_REASON } from "@/lib/normalize";
 import { preloadImages } from "@/lib/utils/preload";
 import { rankedAwaiting, reviewQueue, archiveList, resolvedList } from "@/lib/store/selectors";
 import type {
   Crew,
+  CrewLogEntry,
+  CrewStep,
   CrewType,
   DecisionLogEntry,
   DispatchState,
@@ -53,6 +54,8 @@ interface IncidentStoreState {
   crews: Crew[];
   /** Open requests for more help from crews on scene, newest first. */
   supportRequests: SupportRequest[];
+  /** What each crew did from the crew view, newest first (see logCrewAction). */
+  crewLog: CrewLogEntry[];
   /** Incident the crew picker is open for; null = closed. */
   crewPickerFor: string | null;
   /** Bumped on every opening, so the picker starts with nothing ticked each time. */
@@ -60,7 +63,6 @@ interface IncidentStoreState {
   group: IncidentGroup | null;
   toasts: Toast[];
 
-  theme: "dark" | "light";
   clockTick: number;
   keysOpen: boolean;
   mapView: MapView | null;
@@ -93,9 +95,6 @@ interface IncidentStoreState {
   init: () => Promise<void>;
   /** Re-reads every incident from the server (live updates). Skips incidents with an action in flight. */
   refresh: () => Promise<void>;
-  toggleTheme: () => void;
-  /** Adopts the theme the pre-paint script in the root layout already applied. */
-  syncThemeFromDocument: () => void;
   tickClock: () => void;
   setKeysOpen: (open: boolean) => void;
   setMapView: (view: MapView) => void;
@@ -120,9 +119,9 @@ interface IncidentStoreState {
   loadCrews: () => Promise<void>;
   dispatchCrews: (id: string, crewIds: string[]) => Promise<void>;
   recallCrew: (incidentId: string, assignmentId: string) => Promise<void>;
-  /** Crew tab: the crew moves itself along. */
-  setCrewStatus: (assignmentId: string, status: "en_route" | "on_scene") => Promise<void>;
-  /** Crew tab: no fire here. Marks the image not a fire, archives the incident, frees its crews. */
+  /** Crew view: the crew moves itself along. */
+  setCrewStatus: (assignmentId: string, status: CrewStep) => Promise<void>;
+  /** Crew view: no fire here. Marks the image not a fire, archives the incident, frees its crews. */
   falseAlarm: (id: string) => Promise<void>;
   loadSupportRequests: () => Promise<void>;
   /** Resolves true once sent. */
@@ -189,6 +188,35 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     return id;
   }
 
+  // A crew's own action, for the crew view's log. The returned undo marks the entry undone first, so
+  // undoing from the toast or from the log is the same thing and only happens once. A no-op (the
+  // undo comes back unchanged) when the actor isn't a crew.
+  // ponytail: kept in memory for the session, since undo closures can't be stored; after a reload
+  // the incident's Activity feed still has the history.
+  function logCrewAction(
+    incidentId: string,
+    summary: string,
+    { lane, undo, band }: { lane: CrewLogEntry["lane"]; undo?: () => unknown; band?: SeverityBand }
+  ) {
+    const crewId = get().crews.find((c) => c.label === currentActor())?.id;
+    if (!crewId) return { entryId: null, undo };
+    const entryId = `crew-log-${++logCounter}`;
+    const once = undo
+      ? async () => {
+          if (get().crewLog.find((e) => e.id === entryId)?.undoneAtIso) return;
+          set((s) => ({ crewLog: s.crewLog.map((e) => (e.id === entryId ? { ...e, undoneAtIso: new Date().toISOString() } : e)) }));
+          await undo();
+        }
+      : undefined;
+    const entry: CrewLogEntry = { id: entryId, crewId, incidentId, summary, whenIso: new Date().toISOString(), lane, band, undo: once };
+    set((s) => ({ crewLog: [entry, ...s.crewLog] }));
+    return { entryId, undo: once };
+  }
+
+  function dropCrewLog(entryId: string | null) {
+    if (entryId) set((s) => ({ crewLog: s.crewLog.filter((e) => e.id !== entryId) }));
+  }
+
   function patchIncident(id: string, patch: Partial<Incident>) {
     set((s) => ({
       incidents: { ...s.incidents, [id]: { ...s.incidents[id], ...patch } },
@@ -217,25 +245,25 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     if (incident.flag === "flagged_review") {
       const list = reviewQueue(incidents, order);
       const idx = list.findIndex((i) => i.id === id);
-      return { path: "/review", pageLabel: "Manual review", sectionLabel: "Manual review", position: idx < 0 ? null : idx + 1, total: list.length };
+      return { path: "/coordinator/review", pageLabel: "Manual review", sectionLabel: "Manual review", position: idx < 0 ? null : idx + 1, total: list.length };
     }
     if (incident.flag === "not_a_fire" || incident.dispatch === "archived") {
       const list = archiveList(incidents, order);
       const idx = list.findIndex((i) => i.id === id);
-      return { path: "/archive", pageLabel: "Archive", sectionLabel: "Archive", position: idx < 0 ? null : idx + 1, total: list.length };
+      return { path: "/coordinator/archive", pageLabel: "Archive", sectionLabel: "Archive", position: idx < 0 ? null : idx + 1, total: list.length };
     }
     if (incident.dispatch === "extinguished") {
       const list = resolvedList(incidents, order);
       const idx = list.findIndex((i) => i.id === id);
-      return { path: "/resolved", pageLabel: "Resolved", sectionLabel: "Resolved", position: idx < 0 ? null : idx + 1, total: list.length };
+      return { path: "/coordinator/resolved", pageLabel: "Resolved", sectionLabel: "Resolved", position: idx < 0 ? null : idx + 1, total: list.length };
     }
     if (incident.dispatch === "live") {
-      return { path: "/dispatch", pageLabel: "Dispatch order", sectionLabel: "Dispatch order — Live", position: null, total: null };
+      return { path: "/coordinator/dispatch", pageLabel: "Dispatch order", sectionLabel: "Dispatch order — Live", position: null, total: null };
     }
     if (incident.dispatch === "awaiting" && incident.band > 0) {
       const list = rankedAwaiting(incidents, order);
       const idx = list.findIndex((i) => i.id === id);
-      return { path: "/dispatch", pageLabel: "Dispatch order", sectionLabel: "Dispatch order — Awaiting", position: idx < 0 ? null : idx + 1, total: list.length };
+      return { path: "/coordinator/dispatch", pageLabel: "Dispatch order", sectionLabel: "Dispatch order — Awaiting", position: idx < 0 ? null : idx + 1, total: list.length };
     }
     return null;
   }
@@ -272,12 +300,16 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     guess: Partial<Incident>,
     call: () => Promise<Partial<Incident>>,
     log: string,
-    toast?: Omit<Toast, "id" | "createdAt">
+    toast?: Omit<Toast, "id" | "createdAt">,
+    // crewLog: false for an undo, which marks its entry rather than adding one
+    opts: { crewBand?: SeverityBand; crewLog?: false } = {}
   ): Promise<void> {
     const id = prev.id;
     inFlight.add(id);
     patchIncident(id, guess);
     const logId = pushLog(id, log);
+    const crewEntry = opts.crewLog === false ? null : logCrewAction(id, log, { lane: "incident", undo: toast?.onUndo, band: opts.crewBand });
+    if (toast && crewEntry) toast = { ...toast, onUndo: crewEntry.undo as Toast["onUndo"] };
 
     let toastId: string | null = null;
     if (toast) {
@@ -296,6 +328,7 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
       patchIncident(id, await call());
     } catch (err) {
       patchIncident(id, prev);
+      dropCrewLog(crewEntry?.entryId ?? null);
       set((s) => ({
         toasts: s.toasts.filter((t) => t.id !== toastId),
         decisionLogs: { ...s.decisionLogs, [id]: (s.decisionLogs[id] ?? []).filter((e) => e.id !== logId) },
@@ -318,6 +351,16 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     get().loadSupportRequests();
   }
 
+  async function moveCrew(assignmentId: string, status: CrewStep) {
+    set((s) => ({
+      crews: s.crews.map((c) =>
+        c.assignment?.id === assignmentId ? { ...c, assignment: { ...c.assignment, status, updatedAtIso: new Date().toISOString() } } : c
+      ),
+    }));
+    await attempt("Status not updated", () => dataSource.setCrewStatus(assignmentId, status));
+    syncCrews(); // on failure this puts back the real status
+  }
+
   // Undo = put the store back to the pre-action snapshot now, and the server behind it.
   function undoTo(id: string, prev: Incident, note: string) {
     return () => {
@@ -326,7 +369,7 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
         await dataSource.undo(prev, current);
         syncCrews(); // undoing a dispatch change can free crews
         return {};
-      }, note);
+      }, note, undefined, { crewLog: false });
     };
   }
 
@@ -362,12 +405,12 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     comments: {},
     crews: [],
     supportRequests: [],
+    crewLog: [],
     crewPickerFor: null,
     crewPickerSession: 0,
     group: null,
     toasts: [],
 
-    theme: "light",
     clockTick: 0,
     keysOpen: false,
     mapView: null,
@@ -380,7 +423,7 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     newIncidentId: null,
     locatedIncidentId: null,
     relocatedId: null,
-    lastTabPath: "/",
+    lastTabPath: "/coordinator",
 
     initialized: false,
     loading: false,
@@ -466,23 +509,6 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
       });
     },
 
-    toggleTheme: () =>
-      set((s) => {
-        const next = s.theme === "dark" ? "light" : "dark";
-        if (typeof document !== "undefined") {
-          document.documentElement.setAttribute("data-theme", next);
-          try {
-            localStorage.setItem(THEME_STORAGE_KEY, next);
-          } catch {
-            // storage blocked: the theme still applies for this session
-          }
-        }
-        return { theme: next };
-      }),
-    syncThemeFromDocument: () =>
-      set({
-        theme: document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light",
-      }),
     tickClock: () => set((s) => ({ clockTick: s.clockTick + 1 })),
     setKeysOpen: (open) => set({ keysOpen: open }),
     setMapView: (mapView) => set({ mapView }),
@@ -583,7 +609,8 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
           severityBand: level,
           cta: "undo",
           onUndo: undoTo(id, prev, "Reverted to the AI assessment (undo)"),
-        }
+        },
+        { crewBand: level }
       );
     },
 
@@ -626,13 +653,16 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     },
 
     setCrewStatus: async (assignmentId, status) => {
-      set((s) => ({
-        crews: s.crews.map((c) =>
-          c.assignment?.id === assignmentId ? { ...c, assignment: { ...c.assignment, status, updatedAtIso: new Date().toISOString() } } : c
-        ),
-      }));
-      await attempt("Status not updated", () => dataSource.setCrewStatus(assignmentId, status));
-      syncCrews(); // on failure this puts back the real status
+      const assignment = get().crews.find((c) => c.assignment?.id === assignmentId)?.assignment;
+      const before = assignment?.status;
+      if (assignment && before && before !== "cleared") {
+        // undo = one step back, which the backend allows for exactly this
+        logCrewAction(assignment.incidentId, `${ASSIGNMENT_LABEL[before]} → ${ASSIGNMENT_LABEL[status]}`, {
+          lane: "status",
+          undo: () => moveCrew(assignmentId, before),
+        });
+      }
+      await moveCrew(assignmentId, status);
     },
 
     falseAlarm: (id) => {
@@ -684,7 +714,14 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
     requestSupport: async (incidentId, crewId, crewType, note) => {
       try {
         await dataSource.requestSupport(incidentId, crewId, crewType, note);
-        get().loadSupportRequests();
+        await get().loadSupportRequests();
+        // undo = withdraw it: the newest open request this crew made on this incident
+        const request = get().supportRequests.find((r) => r.crewId === crewId && r.incidentId === incidentId);
+        logCrewAction(
+          incidentId,
+          `Asked for ${crewAsk(crewType)}${note.trim() ? `: "${note.trim()}"` : ""}`,
+          { lane: "support", undo: request ? () => get().dismissSupportRequest(request.id) : undefined }
+        );
         pushToast({ title: "Support requested", body: "The coordinator has been alerted.", severityBand: 0, cta: "dismiss" });
         return true;
       } catch (err) {
@@ -1033,6 +1070,8 @@ export const useIncidentStore = create<IncidentStoreState>((set, get) => {
         // A photo added to a known incident (a crew's): the ingest record carries no dispatch state
         // and isn't scored yet, so re-read the incident instead of overwriting it with that.
         get().refresh();
+        // no undo: a photo stays on the incident (a coordinator can split it off)
+        if (payload.sourceType === "crew") logCrewAction(incident.id, "Added a photo", { lane: "photo" });
         return { ref, incidentId: incident.id };
       }
       set((s) => ({

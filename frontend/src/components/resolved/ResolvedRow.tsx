@@ -19,7 +19,7 @@ export function ResolvedRow({ incident }: { incident: Incident }) {
     <div ref={ref} role="row" className={`data-table__row${pulsing ? " row-pulse" : ""}`}>
       <div role="cell" className="dt-id">
         <Link
-          href={`/incident/${incident.id}`}
+          href={`/coordinator/incident/${incident.id}`}
           className="btn btn--link data"
           style={{ fontFamily: "var(--font-plex-mono)", fontSize: "var(--text-xs)" }}
         >

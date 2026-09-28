@@ -3,6 +3,7 @@ import type { BaseLayerId } from "@/components/map/MapCanvas";
 const OPTIONS: { id: BaseLayerId; label: string }[] = [
   { id: "street", label: "Map" },
   { id: "satellite", label: "Satellite" },
+  { id: "terrain", label: "Terrain" },
 ];
 
 /** Base tile layer picker, styled like the dispatch/review segmented filters. Sits at the

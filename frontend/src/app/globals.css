@@ -4,6 +4,7 @@
 @import "../styles/animations.css";
 @import "../styles/map.css";
 @import "../styles/layout.css";
+@import "../styles/overview.css";
 
 @theme inline {
   --font-sans: var(--font-plex-sans);
@@ -55,11 +56,10 @@ a {
   left: 12px;
   top: -56px;
   z-index: 100;
-  background: var(--grad-primary);
+  background: var(--primary);
   color: var(--on-primary);
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-btn);
   font: 600 var(--text-sm) / 1 var(--font-plex-sans);
   transition: top var(--dur) var(--ease);
 }

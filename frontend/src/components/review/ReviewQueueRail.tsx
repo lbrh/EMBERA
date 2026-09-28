@@ -32,7 +32,7 @@ export function ReviewQueueRail() {
           </h2>
           <span
             className="chip chip--pill data"
-            style={{ color: "var(--on-primary)", background: "var(--grad-primary)", fontFamily: "var(--font-plex-mono)" }}
+            style={{ color: "var(--on-primary)", background: "var(--primary)", fontFamily: "var(--font-plex-mono)" }}
           >
             {queue.length}
           </span>
