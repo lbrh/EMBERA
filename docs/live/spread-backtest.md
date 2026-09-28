@@ -13,7 +13,7 @@
 
 | Step | Formula | Source |
 |---|---|---|
-| Weather | "Now" is the nearest Bureau of Meteorology automatic weather station within 40 km and 400 m of height, observed in the last 90 min; otherwise Open-Meteo's model. The next 2 hours always come from Open-Meteo. Looked up at ingest and refreshed every 30 min while the incident is open. | BoM IDV60920, open-meteo.com |
+| Weather | "Now" is the nearest Bureau of Meteorology automatic weather station within 40 km and 400 m of height, observed in the last 90 min; otherwise Open-Meteo's model. The next 2 hours always come from Open-Meteo. Looked up at ingest and refreshed every 10 min while the incident is open. | BoM IDV60920, open-meteo.com |
 | Fire danger | McArthur Mk5 Forest Fire Danger Index: `FFDI = 2·exp(−0.45 + 0.987·ln DF − 0.0345·RH + 0.0338·T + 0.0234·V)`. Drought factor fixed at 10 (worst case). | Noble et al. 1980 |
 | Severity modifier | FFDI ≥ 50 adds one level to the image's severity, capped at 4 | App rule (FFDI 50 = "Severe" on the legacy scale) |
 | Rate of spread | McArthur Mk5 forest: `R = 2.5 × 0.0012 × FFDI × fuel load` (km/h). Fuel load is guessed from the image's vegetation level: 2, 5, 12 or 25 t/ha. The 2.5 corrects Mk5's known underprediction (§3). | Noble et al. 1980; this backtest |
