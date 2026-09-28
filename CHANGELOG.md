@@ -1,5 +1,55 @@
 # Changelog
 
+## v1.0.0
+
+This release splits EMBERA into three views: civilians report fires, coordinators run the response, and crews work from their phones. It also adds a public landing page with a new logo, and makes AI confidence and "AI assessing…" more reliable.
+
+### Backend
+
+- **Confidence score:** now the mean of the smoke and flame confidences, rounded so float noise can't push a score over the 0.75 line. Before, it was the lowest of the four, so one weak vegetation or infrastructure reading could send a clear fire to review. The review note now reads "smoke/flame confidence 0.7" (D-36).
+- **"AI assessing" is only used while the AI is working:**
+  - If a model fails or isn't set up, the image now goes to `unable_to_assess` (manual review) instead of staying in `pending_review`.
+  - A sweep runs at startup and then every 5 min. It sends any image still pending 10 min after upload to manual review ("AI assessment did not finish"). This catches assessments stopped by a deploy or scale-down.
+  - New column `images.created_at`, which records when each row was written. The sweep uses it.
+- **Crew status undo:** `PATCH /assignments/:id` now accepts one step back (on scene → en route → dispatched), so a crew can undo a status they set by mistake. Skipping a step still returns 409.
+- **Scripts:**
+  - `npm run time-ingest` times a photo from upload until it's scored, on the staging database. It won't run against prod and cleans up after itself.
+  - The demo seed now sets smoke and flame to the same confidence, so each seeded image's score matches its value.
+
+### Frontend
+
+- **Three views:**
+  - **Civilian** (`/civilian`): "Report a fire", a simple upload form with no incident data. Photos are always sent as citizen reports. The form clears after each report, so the same photo can be picked again.
+  - **Coordinator** (`/coordinator/...`): the map, dispatch order, manual review, resolved, archive and crews pages. "Submit image" is no longer a coordinator tab.
+  - **Crew** (`/crew`): a separate phone view with its own header and no coordinator tabs or shortcuts.
+  - Old addresses (`/dispatch`, `/incident/:id`, `/submit`, `/report` and so on) redirect to the new ones (307).
+- **Crew view:**
+  - A new "Your log" lists what the crew did from this screen. The latest change on each fire can be undone (status, extinguished or false alarm, support request), or its severity can be changed again. Photos can't be undone. The log only lasts for the session, and the incident's Activity feed keeps the full history.
+  - The "Standing by" screen updates by itself when the crew is dispatched.
+- **Landing page (`/`):** covers how EMBERA works, the three views with product screenshots, key figures, capabilities, the IBM Cloud stack, About us and the team.
+- **Branding:** a new tonal stripe-flame logo and favicon, and colours from the IBM Gray palette with flat IBM Blue buttons. The theme now follows the browser's light or dark setting, and the manual Light / Dark switch is gone.
+- **Map:** new Terrain layer (OpenTopoMap contours and hillshade).
+- **"AI assessing…"** now shows while the AI is still working, instead of "Flagged for manual review".
+- **Other:**
+  - A 404 page.
+  - Page titles for each tab ("Dispatch order · Coordinator · EMBERA").
+  - `pnpm screenshots` re-captures the landing page's product shots from the mock dev server.
+
+### Infrastructure
+
+- The frontend Docker build skips `scripts/`. The deploy was failing because the build couldn't type-check the spread backtest.
+
+### Documentation
+
+- `docs/brand/logo-options/`: the logo candidates, with a preview page.
+- Updated the architecture, dispatch crews, metadata schema, requirements, severity rubric and UI docs.
+- NFR1 latency now has a measured figure for the AI stage: median 1.9 s and p90 2.4 s warm, 6.0 s cold.
+- New decision log entry D-36.
+
+### Known gaps
+
+- There are still no real logins. The coordinator name is hardcoded, and the crew view makes you pick which crew you are. Ideal for demos, but not truly production ready.
+
 ## v0.2.0
 
 This release adds live dispatch of response crews, fire weather and spread forecasts, merging and splitting incidents, and a real fire / not-a-fire check.
